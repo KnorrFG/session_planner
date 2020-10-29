@@ -6,7 +6,6 @@ type ParserError* = object of CatchableError
 
 
 proc getLineAt(s: string, i: int): string=
-  echo "In getLineAt, s:\n", s
   let sub = s[0..i].reversed.join
   var
     start = sub.find('\n', 1)
@@ -135,11 +134,36 @@ proc parseGraph*(s: string): Graph=
   for ses, points in g.sessions:
     for p in points:
       if p notin registeredPoints:
-        echo "Im going to raise"
         raise newException(ParserError,
           &"Punkt {p} in Session {ses} ist nicht unter Points definiert")
   return g
   
 
 when isMainModule:
-  echo parseGraph(default_text)
+  let text = """
+    Punkte {
+      # Name Rechts Hoch [Farbe]
+      1 4593466 5637921
+      2 4597209 5637946
+      3 4595591 5639878 gelb
+      4 4598250 5642330 gelb
+      5 4592250 5645330 violet
+    }
+
+    # Ich bin ein Kommentar und werde ignoriert werden.
+    Sessions {
+      Lala {$#}
+    }
+  """
+  for i in 2..5:
+    discard parseGraph(text % toSeq(1..i).join(" "))
+
+  for i in 6..10:
+    try: discard parseGraph(text % toSeq(1..i).join(" "))
+    except ParserError:
+      discard
+
+  for i in ["{}", "}", "{SD"]:
+    try: discard parseGraph(text % i)
+    except ParserError:
+      discard

@@ -28,14 +28,15 @@ let
   default_text* = dedent """
     Punkte {
       # Name Rechts Hoch [Farbe]
-      19494 4593466 5637921
-      19115 4597209 5637946
-      19114 4595591 5639878 gelb
-      19133 4598250 5642330 gelb
+      1 4593466 5637921
+      2 4597209 5637946
+      3 4595591 5639878 gelb
+      4 4598250 5642330 gelb
+      5 4592250 5645330 violet
     }
 
     # Ich bin ein Kommentar und werde ignoriert werden.
     Sessions {
-      Lala {19494 19115}
+      Lala {1 2}
     }
   """
