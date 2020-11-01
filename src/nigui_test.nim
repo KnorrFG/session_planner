@@ -47,8 +47,6 @@ drawing.onDraw = proc (event: DrawEvent)=
   canvas.fill()
 
   canvas.lineColor = fgColor
-  #canvas.fontSize = 20
-  #canvas.fontFamily = "Arial"
 
   let 
     points = (1..rand(3..20)).mapIt((name: $it, x: rand(wRange()), 
