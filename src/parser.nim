@@ -102,7 +102,7 @@ proc parsePoints(s: string): seq[Point]=
         colorsTable[elems[3]]
       else:
         raise newException(ParserError, &"Ungültige Farbe: {elems[3]}")
-    result.add((name: elems[0], x: elems[1].parseFloatOrRaise, 
+    result.add(Point(name: elems[0], x: elems[1].parseFloatOrRaise,
                 y: elems[2].parseFloatOrRaise, color: color))
 
 

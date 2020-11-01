@@ -13,8 +13,8 @@ proc renderToCanvas(points: seq[Point], sessions: iterator: HashSet[string],
   canvas.fontFamily = "Arial"
 
   let normPoints = normalizePoints(points,
-                                   canvas.width.float,
-                                   canvas.height.float).
+                                   canvas.width.float64,
+                                   canvas.height.float64).
                    mapIt((it.name, it)).toTable
 
   for p in normPoints.values:
@@ -22,7 +22,7 @@ proc renderToCanvas(points: seq[Point], sessions: iterator: HashSet[string],
     canvas.areaColor = p.color
     canvas.drawEllipseArea(p.x, p.y, pointDiameter, pointDiameter)
     canvas.drawText(p.name,
-                    p.x - int(0.45 * canvas.getTextWidth(p.name).float),
+                    p.x - int(0.45 * canvas.getTextWidth(p.name).float64),
                     p.y + canvas.getTextLineHeight())
 
   for s in sessions():
@@ -34,11 +34,37 @@ proc renderToCanvas(points: seq[Point], sessions: iterator: HashSet[string],
                       nb.x + pointRadius, nb.y + pointRadius)
 
 
+proc addNorthArrow(canvas: Canvas)=
+  ## This will add a north arrow to the Graph, as it seems, that niGui does not
+  ## offer any image rotation, or the ability to load an image from memory the
+  ## only way to add a North Arrow, is by manually drawing it
+  let
+    (root, head, larm, rarm) = (0, 1, 2, 3)
+    points = [initPoint(0.0, 1.0),
+              initPoint(0.0, -1.0),
+              initPoint(-0.5, -0.5),
+              initPoint(0.5, -0.5)]
+    absPoints = collect(newSeq):
+      for p in points:
+        (p + (0.5, 1.0)) * 0.02 * canvas.height +
+          (0.9 * canvas.width, 0.9 * canvas.height)
+
+  proc line(start: int, dest: int)=
+    canvas.drawLine(absPoints[start].x.int, absPoints[start].y.int, 
+                    absPoints[dest].x.int, absPoints[dest].y.int)
+
+  withTemp(canvas.lineWidth, 2):
+    line(larm, head)
+    line(rarm, head)
+    line(root, head)
+
+
 proc storeAsImage(state: Graph, savePath: string)=
   var img = newImage()
   img.resize(1240, 1754)
   renderToCanvas state.points, toFirstClassIter state.sessions.values, 
                  img.canvas, rgb(0, 0, 0, 0)
+  addNorthArrow(img.canvas)
   img.saveToPngFile savePath
 
 
