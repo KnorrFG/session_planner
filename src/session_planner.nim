@@ -34,16 +34,27 @@ proc renderToCanvas(points: seq[Point], sessions: iterator: HashSet[string],
                       nb.x + pointRadius, nb.y + pointRadius)
 
 
-proc addNorthArrow(canvas: Canvas)=
+proc addNorthArrow(canvas: Canvas, rotation: float64)=
   ## This will add a north arrow to the Graph, as it seems, that niGui does not
   ## offer any image rotation, or the ability to load an image from memory the
   ## only way to add a North Arrow, is by manually drawing it
+  
+  # From the canvas coordinates system point of view, the points are rotated,
+  # while they are inverted (the y component gets inverted, due to different
+  # orginis). The inversion messes with the rotation. While I strongly suspect
+  # that a simple minus in front of the rotation angle for the arrow would do,
+  # I am not 100% sure. Therefore, to be sure I get the correct roation, I
+  # invert the y-component of the arrow coords, then rotate them, and then
+  # invert them again. This way the rotation is guaranteed to match with the
+  # points rotation
   let
     (root, head, larm, rarm) = (0, 1, 2, 3)
-    points = [initPoint(0.0, 1.0),
-              initPoint(0.0, -1.0),
-              initPoint(-0.5, -0.5),
-              initPoint(0.5, -0.5)]
+    points = [(0.0, 1.0), (0.0, -1.0), (-0.5, -0.5), (0.5, -0.5)].
+        mapIt((it[0], 1 - it[1])).
+        mapIt(rotate(it, rotation)).
+        mapIt((it[0], 1 - it[1])).
+        mapIt(initPoint(it[0], it[1]))
+
     absPoints = collect(newSeq):
       for p in points:
         (p + (0.5, 1.0)) * 0.02 * canvas.height +
@@ -62,9 +73,15 @@ proc addNorthArrow(canvas: Canvas)=
 proc storeAsImage(state: Graph, savePath: string)=
   var img = newImage()
   img.resize(1240, 1754)
-  renderToCanvas state.points, toFirstClassIter state.sessions.values, 
+  let 
+    (coords, angle) = rotateToDinA4(state.points)
+    points = collect(newSeq):
+      for (c, p) in zip(coords, state.points):
+        p.set(x=c[0], y=c[1])
+
+  renderToCanvas points, toFirstClassIter state.sessions.values, 
                  img.canvas, rgb(0, 0, 0, 0)
-  addNorthArrow(img.canvas)
+  addNorthArrow(img.canvas, angle)
   img.saveToPngFile savePath
 
 
