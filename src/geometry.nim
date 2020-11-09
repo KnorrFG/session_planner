@@ -19,7 +19,9 @@ func `-`[T](l:(T, T), r: (T, T)): (T, T) = (l[0] - r[0], l[1] - r[1])
 func dot[T](l: (T, T), r: (T, T)): T = l[0] * r[0] + l[1] * r[1]
 func abs[T](l: (T, T)): float64 = sqrt(float64(l[0] * l[0] + l[1] * l[1]))
 func angle[T](l: (T, T), r: (T, T)): float64 =
-  arccos(float64(dot(l, r) / (abs(l) * abs(r))))
+  result = -arctan2(float64(l[0] * r[1] - l[1] * r[0]), float64(dot(l, r)))
+  if result < 0:
+    result += 2 * PI
 
 
 func boundingRectSize[T](ps: seq[(T, T)]): (float64, float64)=
@@ -49,7 +51,11 @@ func findConvexHullStartPoint[T](points: seq[(T, T)]): (T, T)=
 
 func findNextPointInConvexHull[T](p: (T, T), vecA: (T, T),
                                   points: seq[(T, T)]): (T, T)=
-  points.minBy (cp: (T, T)) => angle(vecA, cp - p)
+  # I know, this isnt exactly Memory efficient, but it doesn't matter here
+  let 
+    points =  points.filterIt(it != p)
+    i = points.mapIt(angle(vecA, it - p)).minIndex()
+  return points[i]
 
 
 func findConvexHull[T: SomeNumber](points: seq[(T, T)]): HashSet[(T, T)]=
@@ -137,18 +143,20 @@ func normalizePoints*(ps: seq[Point], w, h: float64): seq[NormPoint]=
             color: it.color))
 
 
-# This is from the macro tutorial. Super usefull, why isnt it the default
-# assert?
+const eps = 1e-7
+func `~=`(a: float, b: float): bool = abs(a - b) < eps
+func `~=`(a: (float, float), b: (float, float)): bool =
+  a[0] ~= b[0] and a[1] ~= b[1]
+
+
 when isMainModule:
   let 
     points = toHashSet(mapLiterals(
-      [(0, 2), (2, 2), (2, 0), (0, 0), (1, 1)], float64))
-    expResults = points.dup(excl((1.0, 1.0)))
+      [(0, 2), (2, 2), (2, 0), (0, 0), (1, 1), (1.1, 1.5)], float64))
+    expResults = points.dup(excl((1.0, 1.0)), excl((1.1, 1.5)))
     res = findConvexHull toSeq points
-  doAssert res == expResults
+  myAssert res == expResults
 
-  const eps = 1e-7
-  myAssert angle((0, 1), (1, 0)) == 0.5 * PI
-  myAssert abs(rotate((1, 0), 0.5 * PI) - (0.0, 1.0)) < eps
-  myAssert abs(rotate((1, 1), PI) - (-1.0, -1.0)) < eps
-
+  myAssert angle((0, 1), (1, 0)) ~= 0.5 * PI
+  myAssert rotate((1, 0), 0.5 * PI) ~= (0.0, 1.0) 
+  myAssert rotate((1, 1), PI) ~= (-1.0, -1.0) 

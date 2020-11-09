@@ -1,5 +1,5 @@
 import tables, sets, strutils, sequtils, options, sugar, macros, json
-import nigui, patty
+import nigui
 
 let
   bgColor* = rgb(255, 255, 255)
@@ -55,6 +55,9 @@ type
     color*: Color
   Point* = AbstractPoint[float64]
   NormPoint* = AbstractPoint[int]
+  Graph* = object
+    points*: seq[Point]
+    sessions*: Table[string, HashSet[string]]
 
 
 func initPoint*[T](x, y: T, name="", color=colorsTable["schwarz"]):
@@ -80,13 +83,6 @@ func `*`*[T](p: AbstractPoint[T], factor: T): AbstractPoint[T]=
 
 func `+`*[T](p: AbstractPoint[T], offset: (T, T)): AbstractPoint[T]=
   p.set(x = p.x + offset[0], y = p.y + offset[1])
-
-
-func minBy*[T, T2](xs: seq[T], f: T -> T2): T=
-  let 
-    vals = xs.map(f)
-    i = minIndex vals
-  return xs[i]
 
 
 type Popable*[T] = concept s
@@ -117,24 +113,3 @@ macro myAssert*(arg: untyped): untyped =
   result = quote do:
     if not `arg`:
       raise newException(AssertionDefect,$`lhs` & `op` & $`rhs`)
-
-
-type Graph* = object
-    points*: seq[Point]
-    sessions*: Table[string, HashSet[string]]
-
-
-variant SpecEntry:
-  TextAreaCombo(name: string)
-  DynamicBox
-
-
-type 
-  Spec* = openArray[SpecEntry]
-  GuiFactory* = (JsonNode) -> void
-
-
-const spec* = [
-  TextAreaCombo("Punkte"),
-  TextAreaCombo("Sessions"),
-  DynamicBox()]

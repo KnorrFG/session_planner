@@ -1,6 +1,6 @@
 import nigui
 import sequtils, tables, sets, hashes, sugar
-import core, parser
+import core, parser, geometry
 
 
 proc renderToCanvas(points: seq[Point], sessions: iterator: HashSet[string],
