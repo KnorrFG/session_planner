@@ -10,4 +10,7 @@ bin           = @["session_planner"]
 
 # Dependencies
 
-requires "nim >= 1.4.0", "nigui", "optionsutils"
+requires "nim >= 1.4.0",
+  "nigui",
+  "zero_functional",
+  "karax"

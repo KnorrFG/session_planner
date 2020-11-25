@@ -1,0 +1,89 @@
+body {
+	max-width: 600px;
+	margin: auto;
+}
+
+div {
+	max-width: inherit;
+	width: inherit;
+}
+
+table {
+	text-align: center;
+    border-collapse: collapse;
+    /*margin: 25px 0;*/
+    font-size: 0.9em;
+    font-family: sans-serif;
+	min-width: 400px;
+    /*box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);*/
+}
+
+.pointRec {
+	display: flex;
+	flex-direction: column;
+	border-style: solid;
+	text-align: center;
+	margin-top: 20px;
+}
+
+.pointRec > .ident {
+	display: flex;
+	width: 100%;
+	justify-content: space-around;
+	border-bottom: solid;
+}
+
+.identCell {
+	/*border-style: solid;*/
+}
+
+.pointRec > .contents {
+	display: flex;
+	flex-direction: row;
+	justify-content: stretch;
+	align-items: flex-start;
+}
+
+.contents > * {
+}
+
+.tabWithHeading {
+	/*overflow: hidden;*/
+	display: flex;
+	flex-direction: column;
+	justify-content: stretch;
+}
+
+.pointRec table {
+	table-layout: fixed;
+	min-width: 200px;
+	width: 100%;
+}
+
+table input {
+	min-width: 10px;
+	max-width: 100%;
+	width: 100%;
+}
+
+.r {
+	flex-grow: 2;
+}
+.l {
+	flex-grow: 3;
+}
+
+.hLayout {
+	display: flex;
+	justify-content: space-around;
+}
+
+.vLayout {
+	display: flex;
+	justify-content: space-around;
+	flex-direction: column;
+}
+
+.upperline {
+	border-top: solid;
+}

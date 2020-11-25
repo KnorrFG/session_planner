@@ -1,0 +1,5 @@
+Strecke: 
+Abschnitt:
+Bearbeitet: GI-Consult - Buero Dresden
+			$heute Schroeder
+Projekt: Lagenetz mit $nLinien Basislinien auf $nPunkte Punkten

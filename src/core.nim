@@ -4,6 +4,8 @@ import nigui
 let
   bgColor* = rgb(255, 255, 255)
   fgColor* = rgb(0, 0, 0)
+  txtColor* = fgColor
+  txtOverColor* = rgb(180, 180, 180) 
   pointRadius* = 5
   pointDiameter* = 2 * pointRadius
   colorsTable* = toTable {
@@ -17,28 +19,40 @@ let
     "pink": rgb(255, 20, 147),
     "violet": rgb(148, 0, 211),
   }
-  default_text* = dedent """
-    Punkte {
+  default_points* = dedent """
       # Name Rechts Hoch [Farbe]
       1 4593466 5637921
       2 4597209 5637946
       3 4595591 5639878 gelb
       4 4598250 5642330 gelb
       5 4592250 5645330 violet
-    }
-
+  """
+  default_sessions* = dedent """
     # Ich bin ein Kommentar und werde ignoriert werden.
-    Sessions {
-      Lala {1 2}
-    }
+    Lala {1 2}
+    Foo { 3 4 5 }
+    Bar { 1 2 3 4 }
+  """
+  custom_field_conf = """
+  [
+  {
+    "name": "Strecke",
+    "type": "textEdit"
+  }, {
+    "name": "Abschnitt",
+    "type": "textEdit"
+  }, {
+
+  }
+  ]
   """
 
+type Iterable[T] = iterator: T
 
-template toFirstClassIter*(it): auto=
-  iterator iter(): auto {.closure.} =
+template toFirstClassIter*(it: untyped): untyped=
+  (iterator(): auto =
     for x in it:
-      yield x
-  iter
+      yield x)
 
 
 template withTemp*(field, tmpVal, code):untyped=
@@ -57,7 +71,16 @@ type
   NormPoint* = AbstractPoint[int]
   Graph* = object
     points*: seq[Point]
-    sessions*: Table[string, HashSet[string]]
+    sessions*: Table[string, seq[string]]
+  GuiState* = ref object
+    graph*: Graph
+    txtOver*: string
+
+
+proc newGuiState*(graph: Graph, txtOver: string): GuiState=
+  result = new GuiState
+  result.graph = graph
+  result.txtOver = txtOver
 
 
 func initPoint*[T](x, y: T, name="", color=colorsTable["schwarz"]):

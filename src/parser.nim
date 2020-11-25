@@ -86,7 +86,7 @@ proc parseFloatOrRaise(s: string): float=
                        &"Anstelle von '{s}' sollte eine Zahl stehen")
 
 
-proc parsePoints(s: string): seq[Point]=
+proc parsePoints*(s: string): seq[Point]=
   let lines = s.splitLines().mapIt(it.strip.replace(",", ".")).
                 filterIt(not it.startswith("#") and it.len > 0)
 
@@ -106,18 +106,27 @@ proc parsePoints(s: string): seq[Point]=
                 y: elems[2].parseFloatOrRaise, color: color))
 
 
-proc parseSessions(s: string): Table[string, HashSet[string]]=
+proc parseSessions*(s: string): Table[string, seq[string]]=
   let tokens = parseTopLvl(s.strip)
   for i in countup(0, tokens.high, 2):
     let points = tokens[i + 1]
     result[tokens[i]] = points.splitLines.
                 filterIt(not it.startswith("#") and it.len > 0).
-                join(" ").split().filterIt(it.len > 0).toHashSet
+                join(" ").split().filterIt(it.len > 0)
 
 
 proc `or`[T](x: T, alt: T): T = x
 proc `or`[T](x: typeof(nil), alt: T): T = alt
 
+
+proc assert_graph_valid*(g: Graph)=
+  let registeredPoints = g.points.mapIt(it.name).toHashSet
+  for ses, points in g.sessions:
+    for p in points:
+      if p notin registeredPoints:
+        raise newException(ParserError,
+          &"Punkt {p} in Session {ses} ist nicht unter Points definiert")
+          
 
 proc parseGraph*(s: string): Graph=
   let tokens = parseTopLvl(s.strip)
@@ -128,14 +137,9 @@ proc parseGraph*(s: string): Graph=
   # Using result here will actually manipulate the result in the call to this
   # function immediately, even when an exception is raised
 
-  let g = Graph(points: parse_points(entries.getOrDefault("punkte")),
-                sessions: parse_sessions(entries.getOrDefault("sessions")))
-  let registeredPoints = g.points.mapIt(it.name).toHashSet
-  for ses, points in g.sessions:
-    for p in points:
-      if p notin registeredPoints:
-        raise newException(ParserError,
-          &"Punkt {p} in Session {ses} ist nicht unter Points definiert")
+  let g = Graph(points: parsePoints(entries.getOrDefault("punkte")),
+                sessions: parseSessions(entries.getOrDefault("sessions")))
+  assert_graph_valid(g)
   return g
   
 
