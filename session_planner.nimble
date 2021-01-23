@@ -13,4 +13,4 @@ bin           = @["session_planner"]
 requires "nim >= 1.4.0",
   "nigui",
   "zero_functional",
-  "karax"
+  "https://github.com/juancarlospaco/nim-html-dsl"

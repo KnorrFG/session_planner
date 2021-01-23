@@ -1,0 +1,2 @@
+proc onLoad*()=
+  echo "Loaded"

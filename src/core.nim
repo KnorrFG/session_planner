@@ -1,23 +1,22 @@
 import tables, sets, strutils, sequtils, options, sugar, macros, json
-import nigui
 
 let
-  bgColor* = rgb(255, 255, 255)
-  fgColor* = rgb(0, 0, 0)
+  bgColor* = (255, 255, 255)
+  fgColor* = (0, 0, 0)
   txtColor* = fgColor
-  txtOverColor* = rgb(180, 180, 180) 
+  txtOverColor* = (180, 180, 180) 
   pointRadius* = 5
   pointDiameter* = 2 * pointRadius
   colorsTable* = toTable {
-    "hellblau": rgb(0, 191, 255),
-    "blau": rgb(0, 0, 205),
-    "rot": rgb(205, 0, 0),
-    "schwarz": rgb(0, 0, 0),
-    "grün": rgb(50, 205, 50),
-    "gelb": rgb(255, 215, 0),
-    "orange": rgb(255, 140, 0),
-    "pink": rgb(255, 20, 147),
-    "violet": rgb(148, 0, 211),
+    "hellblau": (0, 191, 255),
+    "blau": (0, 0, 205),
+    "rot": (205, 0, 0),
+    "schwarz": (0, 0, 0),
+    "grün": (50, 205, 50),
+    "gelb": (255, 215, 0),
+    "orange": (255, 140, 0),
+    "pink": (255, 20, 147),
+    "violet": (148, 0, 211),
   }
   default_points* = dedent """
       # Name Rechts Hoch [Farbe]
@@ -32,19 +31,6 @@ let
     Lala {1 2}
     Foo { 3 4 5 }
     Bar { 1 2 3 4 }
-  """
-  custom_field_conf = """
-  [
-  {
-    "name": "Strecke",
-    "type": "textEdit"
-  }, {
-    "name": "Abschnitt",
-    "type": "textEdit"
-  }, {
-
-  }
-  ]
   """
 
 type Iterable[T] = iterator: T
@@ -66,7 +52,7 @@ type
   AbstractPoint*[T] = object
     name*: string
     x*, y*: T
-    color*: Color
+    color*: (int, int, int)
   Point* = AbstractPoint[float64]
   NormPoint* = AbstractPoint[int]
   Graph* = object
@@ -92,7 +78,7 @@ func set*[T, T2](p: AbstractPoint[T],
              name: string = p.name,
              x: T2 = T2(p.x),
              y: T2 = T2(p.y),
-             color: Color = p.color):
+             color: (int, int, int) = p.color):
   AbstractPoint[T2] = AbstractPoint[T2](name:name, x:x, y:y, color:color)
 
 

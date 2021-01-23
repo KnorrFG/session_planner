@@ -1,6 +1,10 @@
 import nigui, zero_functional
-import sequtils, tables, sets, hashes, sugar, strutils, times, os
+import sequtils, tables, sets, hashes, sugar, strutils, times, os, std/json
 import core, parser, geometry, gui, htmlGen
+
+
+converter toColor(c: (int, int, int)): Color =
+  rgb(byte(c[0]), byte(c[1]), byte(c[2]))
 
 
 proc getFilePathViaDialog(title: string, defaultExtension: string): string=
@@ -11,8 +15,8 @@ proc getFilePathViaDialog(title: string, defaultExtension: string): string=
   return dialog.file
 
 
-proc renderToCanvas(state: GuiState, canvas: Canvas, bgColor=bgColor,
-                    txtOverColor=txtOverColor)=
+proc renderToCanvas(state: GuiState, canvas: Canvas, bgColor=toColor bgColor,
+                    txtOverColor=toColor txtOverColor)=
   canvas.areaColor = bgColor
   canvas.fill()
 
@@ -135,7 +139,9 @@ exportButton.onClick = proc(ev: ClickEvent)=
     storeAsImage(state, filePath)
     let 
       fileSplit = splitFile(filePath)
+      jsonPath = fileSplit.dir / fileSplit.name & ".json"
       htmlPath = fileSplit.dir / fileSplit.name & ".html"
+    jsonPath.writeFile $(%*state)
     htmlPath.writeFile makeHtml state
 
 
@@ -176,7 +182,7 @@ win.onCloseClick = proc(event: CloseClickEvent) =
   drawWin.dispose()
 
 state = getState()
-writeFile getHomeDir() / "tmp/graph.html", makeHtml state
+writeFile(getHomeDir() & "/tmp/foo.html",  makeHtml state)
 #win.show()
 #drawWin.show()
 #app.run()

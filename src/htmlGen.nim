@@ -1,71 +1,72 @@
 import sequtils, tables, strutils, os
-import zero_functional, karax / [karaxdsl, vdom]
+import zero_functional, html_dsl
 import core
 
 
-proc make_session_table(sessions: Table[string, seq[string]]): VNode=
+proc make_session_table(sessions: Table[string, seq[string]]): string=
   let nAntennas = sessions.values --> map(len it).max()
-  buildHtml(table):
-    tr:
-      th text "Session"
-      for i in 1..nAntennas:
-        th text "GPS $1" % $i
-
-    for name, points in sessions:
+  html:
+    table:
       tr:
-        td: text name
-        for p in points:
-          td text p
+        th "Session"
+        for i in 1..nAntennas:
+          th "GPS $1" % $i
+
+      for name, points in sessions:
+        tr:
+          td: name
+          for p in points:
+            td p
 
 
-proc make_point_rec(point, session: string): VNode=
+proc make_point_rec(point, session: string): string=
   func myId(i: int): string = point & session & $i
 
-  buildHtml():
-    tdiv(class="pointRec"):
-      tdiv(class="ident"):
-        tdiv(class="identCell"):
-          bold: text "Punkt: "  
-          text point
-        tdiv(class="identCell"):
-          bold: text "Session: " 
-          text session
-      tdiv(class="contents"):
-        tdiv(class="tabWithHeading l"):
-          tdiv: text "Höhenablesung"
+  html:
+    divs(class="pointRec"):
+      divs(class="ident"):
+        divs(class="identCell"):
+          bold: "Punkt: "  
+          point
+        divs(class="identCell"):
+          bold: "Session: " 
+          session
+      divs(class="contents"):
+        divs(class="tabWithHeading l"):
+          divs: "Höhenablesung"
           table:
             tr:
               th()
-              th text "v"
-              th text "s1"
-              th text "s2"
+              th "v"
+              th "s1"
+              th "s2"
             tr:
-              td text "Start"
-              td input()
-              td input()
-              td input()
-            tr:
-              td text "Ende"
+              td "Start"
               td input()
               td input()
               td input()
             tr:
-              td text "Diff \u2264 2mm"
-              td label(id=myId(1), text "")
-              td label(id=myId(2), text "")
-              td label(id=myId(3), text "")
+              td "Ende"
+              td input()
+              td input()
+              td input()
             tr:
-              td text "reduziert"
-              td label(id=myId(4), text "")
-              td label(id=myId(5), text "")
-              td label(id=myId(6), text "")
-        tdiv(class="tabWithHeading r"):
-          tdiv: text "Beobachtungen"
+              td "Diff \u2264 2mm"
+              td label(id=myId(1), "")
+              td label(id=myId(2), "")
+              td label(id=myId(3), "")
+            tr:
+              td "reduziert"
+              td label(id=myId(4), "")
+              td label(id=myId(5), "")
+              td label(id=myId(6), "")
+        divs(class="tabWithHeading r"):
+          divs: "Beobachtungen"
           table:
             tr:
-              th text "Zeit"
-              th text "# Sats"
-              th text "PDOP"
+              th "Zeit"
+              th "# Sats"
+              th "PDOP"
             tr:
               td input()
               td input()
@@ -74,37 +75,38 @@ proc make_point_rec(point, session: string): VNode=
               td input()
               td input()
               td input()
-      tdiv(class="hLayout upperline"):
-        tdiv:
-          bold text "Mittelwert Höhe ARP: "
-          text ""
-        tdiv:
-          bold text "Mittelwert ARP abzgl v0: "
-          text ""
-      tdiv(class="hLayout upperline"):
-        tdiv:
+      divs(class="hLayout upperline"):
+        divs:
+          bold "Mittelwert Höhe ARP: "
+          ""
+        divs:
+          bold "Mittelwert ARP abzgl v0: "
+          ""
+      divs(class="hLayout upperline"):
+        divs:
           input(type="checkbox")
-          label text "Kontrolle NRP \u2264 10 \u00B0"
-        tdiv:
+          label "Kontrolle NRP \u2264 10 \u00B0"
+        divs:
           input(type="checkbox")
-          label text "Kontrolle Zentrierung \u2264 2mm"
-      tdiv(class="vLayout upperline"):
-        text "Bermerkung:"
+          label "Kontrolle Zentrierung \u2264 2mm"
+      divs(class="vLayout upperline"):
+        "Bermerkung:"
         textarea()
 
 
-    
-  
-
 proc makeHtml*(state: GuiState): string=
-  let src = buildHtml(html):
-    head:
+  html:
+    heads:
       meta(charset="utf-8")
-      link(rel="stylesheet", href= "file://" & getCurrentDir() / "my.css")
-      title text "Session Title"
-    body:
-      h1 text "Session Table"
+      title "Session Title"
+      style:
+        "my.css".readFile()
+      script:
+        "my.js".readFile()
+    bodys(onLoad="onLoad()"):
+      h1 "Session Table"
       makeSessionTable(state.graph.sessions)
-      make_point_rec("1", "Lala")
+      for session, points in state.graph.sessions:
+        for point in points:
+          make_point_rec(point, session)
 
-  $src
