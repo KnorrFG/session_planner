@@ -1,10 +1,10 @@
 import nigui, zero_functional
 import sequtils, tables, sets, hashes, sugar, strutils, times, os, std/json
-import core, parser, geometry, gui, htmlGen
+import core, parser, geometry, gui, htmlGen2
 
 
-converter toColor(c: (int, int, int)): Color =
-  rgb(byte(c[0]), byte(c[1]), byte(c[2]))
+converter toNiGuiColor(c: core.Color): nigui.Color =
+  rgb(byte(c.r), byte(c.g), byte(c.b))
 
 
 proc getFilePathViaDialog(title: string, defaultExtension: string): string=
@@ -15,8 +15,8 @@ proc getFilePathViaDialog(title: string, defaultExtension: string): string=
   return dialog.file
 
 
-proc renderToCanvas(state: GuiState, canvas: Canvas, bgColor=toColor bgColor,
-                    txtOverColor=toColor txtOverColor)=
+proc renderToCanvas(state: GuiState, canvas: Canvas, bgColor=toNiGuiColor bgColor,
+                    txtOverColor=toNiGuiColor txtOverColor)=
   canvas.areaColor = bgColor
   canvas.fill()
 

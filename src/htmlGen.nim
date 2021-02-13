@@ -101,7 +101,6 @@ proc makeHtml*(state: GuiState): string=
         text "my.css".readFile()
       script:
         text "my.js".readFile()
-      # body(onLoad="onLoad()"):
       body:
         h1 text "Session Table"
       makeSessionTable(state.graph.sessions)

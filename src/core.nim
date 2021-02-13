@@ -1,22 +1,39 @@
 import tables, sets, strutils, sequtils, options, sugar, macros, json
 
+type
+  Color* = object
+    r*, g*, b*: int
+  AbstractPoint*[T] = object
+    name*: string
+    x*, y*: T
+    color*: Color
+  Point* = AbstractPoint[float64]
+  NormPoint* = AbstractPoint[int]
+  Graph* = object
+    points*: seq[Point]
+    sessions*: Table[string, seq[string]]
+  GuiState* = ref object
+    graph*: Graph
+    txtOver*: string
+
+
 let
-  bgColor* = (255, 255, 255)
-  fgColor* = (0, 0, 0)
+  bgColor* = Color(r:255, g:255, b:255)
+  fgColor* = Color(r:0, g:0, b:0)
   txtColor* = fgColor
-  txtOverColor* = (180, 180, 180) 
+  txtOverColor* = Color(r:180, g:180, b:180) 
   pointRadius* = 5
   pointDiameter* = 2 * pointRadius
   colorsTable* = toTable {
-    "hellblau": (0, 191, 255),
-    "blau": (0, 0, 205),
-    "rot": (205, 0, 0),
-    "schwarz": (0, 0, 0),
-    "grün": (50, 205, 50),
-    "gelb": (255, 215, 0),
-    "orange": (255, 140, 0),
-    "pink": (255, 20, 147),
-    "violet": (148, 0, 211),
+    "hellblau": Color(r: 0, g:191, b: 255),
+    "blau": Color(r: 0, g: 0, b: 205),
+    "rot": Color(r:205, g:0, b:0),
+    "schwarz": Color(r:0, g:0, b:0),
+    "grün": Color(r:50, g:205, b:50),
+    "gelb": Color(r:255, g:215, b:0),
+    "orange": Color(r:255, g:140, b:0),
+    "pink": Color(r:255, g:20, b:147),
+    "violet": Color(r:148, g:0, b:211),
   }
   default_points* = dedent """
       # Name Rechts Hoch [Farbe]
@@ -33,7 +50,6 @@ let
     Bar { 1 2 3 4 }
   """
 
-type Iterable[T] = iterator: T
 
 template toFirstClassIter*(it: untyped): untyped=
   (iterator(): auto =
@@ -48,28 +64,15 @@ template withTemp*(field, tmpVal, code):untyped=
   field = oldVal
 
 
-type
-  AbstractPoint*[T] = object
-    name*: string
-    x*, y*: T
-    color*: (int, int, int)
-  Point* = AbstractPoint[float64]
-  NormPoint* = AbstractPoint[int]
-  Graph* = object
-    points*: seq[Point]
-    sessions*: Table[string, seq[string]]
-  GuiState* = ref object
-    graph*: Graph
-    txtOver*: string
-
-
 proc newGuiState*(graph: Graph, txtOver: string): GuiState=
   result = new GuiState
   result.graph = graph
   result.txtOver = txtOver
 
 
-func initPoint*[T](x, y: T, name="", color=colorsTable["schwarz"]):
+proc `$`*(x: GuiState): string = repr(x)
+
+func initPoint*[T](x, y: T, name="", color: Color =colorsTable["schwarz"]):
     AbstractPoint[T] = AbstractPoint[T](name:name, x:x, y:y, color:color)
 
 
@@ -78,7 +81,7 @@ func set*[T, T2](p: AbstractPoint[T],
              name: string = p.name,
              x: T2 = T2(p.x),
              y: T2 = T2(p.y),
-             color: (int, int, int) = p.color):
+             color:Color = p.color):
   AbstractPoint[T2] = AbstractPoint[T2](name:name, x:x, y:y, color:color)
 
 

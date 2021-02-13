@@ -12,9 +12,11 @@ table {
 	text-align: center;
     border-collapse: collapse;
     /*margin: 25px 0;*/
+	margin-left: auto;
+	margin-right: auto;
     font-size: 0.9em;
     font-family: sans-serif;
-	min-width: 400px;
+	/*min-width: 400px;*/
     /*box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);*/
 }
 
@@ -51,13 +53,13 @@ table {
 	/*overflow: hidden;*/
 	display: flex;
 	flex-direction: column;
-	justify-content: stretch;
+	/*justify-content: stretch;*/
 }
 
 .pointRec table {
 	table-layout: fixed;
-	min-width: 200px;
-	width: 100%;
+	/*min-width: 200px;*/
+	width: 95%;
 }
 
 table input {
@@ -86,4 +88,8 @@ table input {
 
 .upperline {
 	border-top: solid;
+}
+
+.padded {
+	padding: 5px;
 }
