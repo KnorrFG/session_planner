@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+
+nimble js -o:my.js src/report_js.nim
+nimble run

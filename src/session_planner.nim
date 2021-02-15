@@ -1,6 +1,6 @@
 import nigui, zero_functional
 import sequtils, tables, sets, hashes, sugar, strutils, times, os, std/json
-import core, parser, geometry, gui, htmlGen2
+import core, parser, geometry, gui, htmlGen
 
 
 converter toNiGuiColor(c: core.Color): nigui.Color =
