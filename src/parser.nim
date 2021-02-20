@@ -31,7 +31,7 @@ proc parseUntilMatching(s: string, buf: var string, match: char, inverse: char,
     if no == 0:
       return 0
     else:
-      offset += no 
+      offset += no
 
     if s[i + offset] == match:
       open -= 1
@@ -141,6 +141,27 @@ proc parseGraph*(s: string): Graph=
                 sessions: parseSessions(entries.getOrDefault("sessions")))
   assert_graph_valid(g)
   return g
+
+
+proc parseTextField*(t: string): tuple[imageText, htmlText: string] =
+  var 
+    imgLines: seq[string] = @[]
+    htmlLines: seq[string] = @[]
+
+  for line in t.splitLines():
+    let l = line.strip()
+    if l.startsWith("#"):
+      continue
+    elif l.startsWith ":h":
+      htmlLines.add(l[2 ..< l.len].strip)
+    elif l.startsWith ":b":
+      imgLines.add(l[2 ..< l.len].strip)
+    else:
+      htmlLines.add(line)
+      imgLines.add(line)
+
+  (imageText: imgLines.join("\n"), htmlText: htmlLines.join("\n"))
+
   
 
 when isMainModule:

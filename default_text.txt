@@ -1,3 +1,10 @@
+# Ich bin ein Kommentar, und werde ignoriert (weil ich mit # beginne)
+
+:h weil ich mit :h beginne werde ich nur im html file auftauchen
+:b weil ich mit :b beginne werde ich nur im Bild auftauchen
+
+# Alle anderen Zeilen erscheinen sowohl im Bild als auch im Html.
+
 Strecke: 
 Abschnitt:
 Bearbeitet: GI-Consult - Buero Dresden

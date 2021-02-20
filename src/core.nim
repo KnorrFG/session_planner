@@ -14,7 +14,8 @@ type
     sessions*: Table[string, seq[string]]
   GuiState* = ref object
     graph*: Graph
-    txtOver*: string
+    txtOverImg*: string
+    txtOverHtml*: string
 
 
 let
@@ -64,10 +65,11 @@ template withTemp*(field, tmpVal, code):untyped=
   field = oldVal
 
 
-proc newGuiState*(graph: Graph, txtOver: string): GuiState=
+proc newGuiState*(graph: Graph, txtOverImg, txtOverHtml: string): GuiState=
   result = new GuiState
   result.graph = graph
-  result.txtOver = txtOver
+  result.txtOverImg = txtOverImg
+  result.txtOverHtml = txtOverHtml
 
 
 proc `$`*(x: GuiState): string = repr(x)

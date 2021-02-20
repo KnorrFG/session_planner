@@ -8,7 +8,7 @@ div {
 	width: inherit;
 }
 
-table {
+table.box {
 	text-align: center;
     border-collapse: collapse;
     /*margin: 25px 0;*/
@@ -20,12 +20,17 @@ table {
     /*box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);*/
 }
 
+div.txtOver{
+	white-space: pre-wrap;
+}
+
 .pointRec {
 	display: flex;
 	flex-direction: column;
 	border-style: solid;
 	text-align: center;
 	margin-top: 20px;
+	page-break-inside: avoid;
 }
 
 .pointRec > .ident {

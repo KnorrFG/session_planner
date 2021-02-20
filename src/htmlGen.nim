@@ -1,26 +1,44 @@
 #? stdtmpl(subsChar = '$', metaChar = '#')
 #
-#import tables, strutils, htmlgen
+#import tables, strutils
 #import zero_functional
 #import core
 #
 #
-#proc makeSettingsSection(): string =
+#proc makeSettingsSection(image: string): string =
 <h2>Einstellungen</h2>
-<table>
-  <tr>
-    <td><label for="v0"><b>v<sub>0</sub></b></label></td>
-    <td><input type="number" step=0.0001 id="v0"></td>
-  </tr>
-  <tr>
-    <td><label for="s0"><b>s<sub>0</sub></b></label></td>
-    <td><input type="number" step=0.0001 id="s0"></td>
-  </tr>
-  <tr>
-    <td><label for="sH"><b>s<sub>H</sub></b></label></td>
-    <td><input type="number" step=0.0001 id="sH"></td>
-  </tr>
-</table>
+<div class="hLayout">
+  <img width="40%" src="data:image/jpg;base64,$image" alt="">
+  <table class="settings">
+    <tr>
+      <td><b>a: </b></td>
+      <td>Höhe Antennenreferenzpunkt (ARP)</td>
+    </tr>
+    <tr>
+      <td><b>v:</b></td>
+      <td>Vertikale Messung; Messwert</td>
+    </tr>
+    <tr>
+      <td><label for="v0"><b>v<sub>0</sub>:</b></td>
+      <td>Vertikale Messung; Höhenoffset</label></td>
+      <td><input type="number" step=0.0001 id="v0"></td>
+    </tr>
+    <tr>
+      <td><b>s:</b></td>
+      <td>Schräge Messung; Messwert</td>
+    </tr>
+    <tr>
+      <td><label for="s0"><b>s<sub>0</sub>:</b></td>
+      <td>Schräge Messung; Höhenoffset</label></td>
+      <td><input type="number" step=0.0001 id="s0"></td>
+    </tr>
+    <tr>
+      <td><label for="sH"><b>s<sub>H</sub>:</b></td>
+      <td>Schräge Messung; horizontaler Offset</label></td>
+      <td><input type="number" step=0.0001 id="sH"></td>
+    </tr>
+  </table>
+</div>
 #end proc
 #
 #proc makeSessionTable(sessions: Table[string, seq[string]]): string =
@@ -63,7 +81,7 @@
   <div class="contents">
     <div class="tabWithHeading padded">
       <div>Höhenablesung</div>
-      <table>
+      <table class="box">
         <tr>
           <th></th>
           <th>v</th>
@@ -99,7 +117,7 @@
   </div>
   <div class="tabWithHeading upperline padded">
     <div>Beobachtungen</div>
-    <table>
+    <table class="box">
       <tr>
         <th>Zeit</th>
         <th># Sats</th>
@@ -145,12 +163,65 @@
 #end proc
 #
 #
-#proc makeHtml*(state: GuiState):string =
+#proc makeAntennaInfoBlock(): string =
+<table>
+  <tr>
+    <td>
+      <label for="anntennablock1">Antenne (Typ, SNr)</label>
+    </td>
+    <td>
+      <input id="anntennablock1" type="">
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <label for="anntennablock2">Empfänger</label>
+    </td>
+    <td>
+      <input id="anntennablock2" type="">
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <label for="anntennablock3">Messjob</label>
+    </td>
+    <td>
+      <input id="anntennablock3" type="">
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <label for="anntennablock4">Koordinatensystem</label>
+    </td>
+    <td>
+      <input id="anntennablock4" type="">
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <label for="anntennablock5">Bemerkung</label>
+    </td>
+    <td>
+      <input id="anntennablock5" type="">
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <label for="anntennablock6">Geprüft</label>
+    </td>
+    <td>
+      <input id="anntennablock6" type="">
+    </td>
+  </tr>
+</table>
+#end proc
+#
+#proc makeHtml*(state: GuiState, image: string):string =
 <!DOCTYPE html>
 <html lang="de">
 <head>
 	<meta charset="UTF-8">
-	<title></title>
+	<title>Beobachtungsprotokol</title>
   <style>
     ${"my.css".readFile()}
   </style>
@@ -159,12 +230,21 @@
   </script>
 </head>
 <body onload="onLoad()">
-${makeSettingsSection()}
-<h2>Session Table</h2>
+<h1>Beobachtungsprotokol</h1>
+<div class="txtOver">
+$state.txtOverHtml
+</div>
+${makeSettingsSection(image)}
+<h2>Session Planung</h2>
 ${makeSessionTable(state.graph.sessions)}
-#for session, points in state.graph.sessions:
-  #for point in points:
-    ${makePointRecord(point, session)}  
+#let nAntennas = state.graph.sessions.values --> map(len it).max()
+#for i in 0..<nAntennas:
+  <h3>GPS ${i + 1}</h3>
+  ${makeAntennaInfoBlock()}
+  #for session, points in state.graph.sessions:
+    #if points.len > i:
+      ${makePointRecord(points[i], session)}  
+    #end if
   #end for
 #end for
 </body>

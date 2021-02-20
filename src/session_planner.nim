@@ -1,10 +1,21 @@
 import nigui, zero_functional
-import sequtils, tables, sets, hashes, sugar, strutils, times, os, std/json
+import sequtils, tables, sets, hashes, sugar, strutils, times, os, std/json,
+  base64
 import core, parser, geometry, gui, htmlGen
 
 
 converter toNiGuiColor(c: core.Color): nigui.Color =
   rgb(byte(c.r), byte(c.g), byte(c.b))
+
+
+proc load_antenna_image_as_base64(): string =
+  let file = "antenna.jpg".open()
+  defer: file.close()
+
+  let nBytes = file.getFileSize()
+  var buffer = newSeq[byte](nBytes)
+  assert file.readBytes(buffer, 0, nBytes) == nBytes
+  encode buffer
 
 
 proc getFilePathViaDialog(title: string, defaultExtension: string): string=
@@ -15,7 +26,8 @@ proc getFilePathViaDialog(title: string, defaultExtension: string): string=
   return dialog.file
 
 
-proc renderToCanvas(state: GuiState, canvas: Canvas, bgColor=toNiGuiColor bgColor,
+proc renderToCanvas(state: GuiState, canvas: Canvas,
+                    bgColor=toNiGuiColor bgColor,
                     txtOverColor=toNiGuiColor txtOverColor)=
   canvas.areaColor = bgColor
   canvas.fill()
@@ -47,7 +59,7 @@ proc renderToCanvas(state: GuiState, canvas: Canvas, bgColor=toNiGuiColor bgColo
                       nb.x + pointRadius, nb.y + pointRadius)
 
   canvas.textColor = txtOverColor
-  canvas.drawText(state.txtOver,
+  canvas.drawText(state.txtOverImg,
                   int(0.05 * canvas.width), int(0.05 * canvas.height))
 
 
@@ -103,7 +115,8 @@ proc storeAsImage(state: GuiState, savePath: string)=
         p.set(x=c[0], y=c[1])
     rotatedGraph = Graph(points: points, sessions: state.graph.sessions)
 
-  renderToCanvas(newGuiState(rotatedGraph, state.txtOver), img.canvas)
+  renderToCanvas(newGuiState(rotatedGraph, state.txtOverImg, state.txtOverHtml),
+                 img.canvas)
   addNorthArrow(img.canvas, angle)
   img.saveToPngFile savePath
 
@@ -139,10 +152,10 @@ exportButton.onClick = proc(ev: ClickEvent)=
     storeAsImage(state, filePath)
     let 
       fileSplit = splitFile(filePath)
-      jsonPath = fileSplit.dir / fileSplit.name & ".json"
+      #jsonPath = fileSplit.dir / fileSplit.name & ".json"
       htmlPath = fileSplit.dir / fileSplit.name & ".html"
-    jsonPath.writeFile $(%*state)
-    htmlPath.writeFile makeHtml state
+    #jsonPath.writeFile $(%*state)
+    htmlPath.writeFile(makeHtml(state, load_antenna_image_as_base64()))
 
 
 var 
@@ -163,9 +176,10 @@ proc getState(): GuiState=
   let
     nLines = g.sessions.values --> map(nLines(it)).fold(0, a + it)
     nPoints = g.points.len
-    txt = txtOverArea.text % ["nLinien", $nLines, "nPunkte", $nPoints,
+    txt_sub = txtOverArea.text % ["nLinien", $nLines, "nPunkte", $nPoints,
                               "heute", now().format("dd'.'mm'.'yyyy")]
-  newGuiState(g, txt)
+    txt = parseTextField(txt_sub)
+  newGuiState(g, txt.imageText, txt.htmlText)
 
 
 win.onKeyDown = proc(event: KeyboardEvent)=
@@ -182,7 +196,8 @@ win.onCloseClick = proc(event: CloseClickEvent) =
   drawWin.dispose()
 
 state = getState()
-writeFile(getHomeDir() & "/tmp/foo.html",  makeHtml state)
-#win.show()
-#drawWin.show()
-#app.run()
+#writeFile(getHomeDir() & "/tmp/foo.html",
+          #makeHtml(state, load_antenna_image_as_base64()))
+win.show()
+drawWin.show()
+app.run()
