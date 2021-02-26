@@ -216,7 +216,7 @@
 </table>
 #end proc
 #
-#proc makeHtml*(state: GuiState, image: string):string =
+#proc makeHtml*(state: State, image: string):string =
 <!DOCTYPE html>
 <html lang="de">
 <head>

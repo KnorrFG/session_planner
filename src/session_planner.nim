@@ -1,8 +1,14 @@
-import nigui, zero_functional
+import nigui, zero_functional, cairo
 import sequtils, tables, sets, hashes, sugar, strutils, times, os, std/json,
   base64
-import core, parser, geometry, gui, htmlGen
+import core, parser, geometry, gui, htmlGen, render
 
+
+type GuiState = object
+  pointAreaText, sessionAreaText, miscText: string
+
+
+let transferImagePath = getTransferImagePath()
 
 converter toNiGuiColor(c: core.Color): nigui.Color =
   rgb(byte(c.r), byte(c.g), byte(c.b))
@@ -19,84 +25,13 @@ proc load_antenna_image_as_base64(): string =
 
 
 proc getFilePathViaDialog(title: string, defaultExtension: string): string=
+  let cwd = getCurrentDir()
   var dialog = newSaveFileDialog()
   dialog.title = title
   dialog.defaultExtension = defaultExtension
   dialog.run()
+  setCurrentDir cwd
   return dialog.file
-
-
-proc renderToCanvas(state: GuiState, canvas: Canvas,
-                    bgColor=toNiGuiColor bgColor,
-                    txtOverColor=toNiGuiColor txtOverColor)=
-  canvas.areaColor = bgColor
-  canvas.fill()
-
-  canvas.lineColor = fgColor
-  canvas.fontSize = 20
-  canvas.fontFamily = "Arial"
-  canvas.textColor = txtColor
-
-  let normPoints = normalizePoints(state.graph.points,
-                                   canvas.width.float64,
-                                   canvas.height.float64).
-                   mapIt((it.name, it)).toTable
-
-  for p in normPoints.values:
-  # Coordinates are Pixels, left top is 0, 0
-    canvas.areaColor = p.color
-    canvas.drawEllipseArea(p.x, p.y, pointDiameter, pointDiameter)
-    canvas.drawText(p.name,
-                    p.x - int(0.45 * canvas.getTextWidth(p.name).float64),
-                    p.y + canvas.getTextLineHeight())
-
-  for s in state.graph.sessions.values:
-    for (a, b) in twoElemSubSets(s):
-      let
-        na = normPoints[a]
-        nb = normPoints[b]
-      canvas.drawLine(na.x + pointRadius, na.y + pointRadius,
-                      nb.x + pointRadius, nb.y + pointRadius)
-
-  canvas.textColor = txtOverColor
-  canvas.drawText(state.txtOverImg,
-                  int(0.05 * canvas.width), int(0.05 * canvas.height))
-
-
-proc addNorthArrow(canvas: Canvas, rotation: float64)=
-  ## This will add a north arrow to the Graph, as it seems, that niGui does not
-  ## offer any image rotation, or the ability to load an image from memory the
-  ## only way to add a North Arrow, is by manually drawing it
-  
-  # From the canvas coordinates system point of view, the points are rotated,
-  # while they are inverted (the y component gets inverted, due to different
-  # orginis). The inversion messes with the rotation. While I strongly suspect
-  # that a simple minus in front of the rotation angle for the arrow would do,
-  # I am not 100% sure. Therefore, to be sure I get the correct roation, I
-  # invert the y-component of the arrow coords, then rotate them, and then
-  # invert them again. This way the rotation is guaranteed to match with the
-  # points rotation
-  let
-    (root, head, larm, rarm) = (0, 1, 2, 3)
-    points = [(0.0, 1.0), (0.0, -1.0), (-0.5, -0.5), (0.5, -0.5)].
-        mapIt((it[0], 1 - it[1])).
-        mapIt(rotate(it, rotation)).
-        mapIt((it[0], 1 - it[1])).
-        mapIt(initPoint(it[0], it[1]))
-
-    absPoints = collect(newSeq):
-      for p in points:
-        (p + (0.5, 1.0)) * 0.02 * canvas.height +
-          (0.9 * canvas.width, 0.9 * canvas.height)
-
-  proc line(start: int, dest: int)=
-    canvas.drawLine(absPoints[start].x.int, absPoints[start].y.int, 
-                    absPoints[dest].x.int, absPoints[dest].y.int)
-
-  withTemp(canvas.lineWidth, 2):
-    line(larm, head)
-    line(rarm, head)
-    line(root, head)
 
 
 func nLines[T](ses: T): int =
@@ -104,100 +39,120 @@ func nLines[T](ses: T): int =
   int(l * (l - 1) * 0.5)
 
 
-proc storeAsImage(state: GuiState, savePath: string)=
-  var img = newImage()
-  img.resize(1240, 1754)
+proc renderToCanvas(state: State, canvas: Canvas,
+                    bgColor=toNiGuiColor bgColor,
+                    txtOverColor=toNiGuiColor txtOverColor)=
+  let img = renderGraph(state.graph.points, state.graph.sessions,
+                        state.txtOverImg, canvas.width, canvas.height)
+  let img2 = newImage()
+  img2.resize(img.width, img.height)
+  let dataptr = img2.beginPixelDataAccess()
+  copyMem(dataptr, img.rawData(), img.width * img.height * 4)
+  img2.endPixelDataAccess()
+  canvas.drawImage(img2, 0, 0)
 
+
+proc storeAsImage(state: State, savePath: string, northArrow: render.Surface)=
   let
     (coords, angle) = rotateToDinA4(state.graph.points)
     points = collect(newSeq):
       for (c, p) in zip(coords, state.graph.points):
         p.set(x=c[0], y=c[1])
-    rotatedGraph = Graph(points: points, sessions: state.graph.sessions)
 
-  renderToCanvas(newGuiState(rotatedGraph, state.txtOverImg, state.txtOverHtml),
-                 img.canvas)
-  addNorthArrow(img.canvas, angle)
-  img.saveToPngFile savePath
-
-
-var state: GuiState
-app.init()
-
-var win= newWindow("Session Planer")
-
-var vLayout = newLayoutContainer(Layout_Vertical)
-win.add(vLayout)
-var buttonRow = newLayoutContainer(Layout_Horizontal)
-vLayout.add(buttonRow)
+  let img = renderGraph(points, state.graph.sessions,
+                        state.txtOverImg, 1240, 1754)
+  img.addNorthArrow(angle, northArrow)
+  img.writeToPng savePath
 
 
-var 
-  (l1, pointArea) = createNamedTextArea("Punkte:")
-  (l2, sessionArea) = createNamedTextArea("Sessions:")
-  (l3, txtOverArea) = createNamedTextArea("Text:")
-
-pointArea.text = default_points
-sessionArea.text = default_sessions
-txtOverArea.text = readFile "default_text.txt"
-vLayout.add(l1)
-vLayout.add(l2)
-vLayout.add(l3)
-
-var exportButton = newButton("\u2611 Export")
-buttonRow.add(exportButton)
-exportButton.onClick = proc(ev: ClickEvent)=
-  let filePath = getFilePathViaDialog("Exportieren nach:", "png")
-  if filePath != "":
-    storeAsImage(state, filePath)
-    let 
-      fileSplit = splitFile(filePath)
-      #jsonPath = fileSplit.dir / fileSplit.name & ".json"
-      htmlPath = fileSplit.dir / fileSplit.name & ".html"
-    #jsonPath.writeFile $(%*state)
-    htmlPath.writeFile(makeHtml(state, load_antenna_image_as_base64()))
-
-
-var 
-  drawWin = newWindow("Session Planer - Graph")
-  drawing = newControl()
-drawWin.add(drawing)
-drawing.widthMode = WidthMode_Expand
-drawing.heightMode = HeightMode_Expand
-drawing.onDraw = proc(event: DrawEvent)=
-  renderToCanvas(state, event.control.canvas) 
-
-
-proc getState(): GuiState=
-  let g = Graph(points: parsePoints(pointArea.text),
-                sessions: parseSessions(sessionArea.text))
+proc parseState(gs: GuiState): State=
+  let g = Graph(points: parsePoints(gs.pointAreaText),
+                sessions: parseSessions(gs.sessionAreaText))
   assert_graph_valid(g)
 
   let
     nLines = g.sessions.values --> map(nLines(it)).fold(0, a + it)
     nPoints = g.points.len
-    txt_sub = txtOverArea.text % ["nLinien", $nLines, "nPunkte", $nPoints,
-                              "heute", now().format("dd'.'mm'.'yyyy")]
+    txt_sub = gs.miscText % ["nLinien", $nLines, "nPunkte", $nPoints,
+                              "heute", now().format("dd'.'MM'.'yyyy")]
     txt = parseTextField(txt_sub)
-  newGuiState(g, txt.imageText, txt.htmlText)
+  newState(g, txt.imageText, txt.htmlText)
 
 
-win.onKeyDown = proc(event: KeyboardEvent)=
-  if Key_Return.isDown() and Key_ControlL.isDown():
-    try:
-      state = getState()
-      drawing.forceRedraw()
-    except ParserError as e:
-      win.alert("Fehler: " & e.msg)
-    event.handled = true
+proc main() =
+  let northArrow = newSurface("north.png")
+  var state: State
+  app.init()
 
-win.onCloseClick = proc(event: CloseClickEvent) =
-  win.dispose()
-  drawWin.dispose()
+  var 
+    win= newWindow("Session Planer")
+    vLayout = newLayoutContainer(Layout_Vertical)
+    buttonRow = newLayoutContainer(Layout_Horizontal)
+    (l1, pointArea) = createNamedTextArea("Punkte:")
+    (l2, sessionArea) = createNamedTextArea("Sessions:")
+    (l3, txtOverArea) = createNamedTextArea("Text:")
+    exportButton = newButton("\u2611 Export")
+    drawWin = newWindow("Session Planer - Graph")
+    drawing = newControl()
 
-state = getState()
-#writeFile(getHomeDir() & "/tmp/foo.html",
-          #makeHtml(state, load_antenna_image_as_base64()))
-win.show()
-drawWin.show()
-app.run()
+  proc getState(): GuiState = 
+    GuiState(pointAreaText: pointArea.text, 
+             sessionAreaText: sessionArea.text, 
+             miscText: txtOverArea.text)
+
+  win.add(vLayout)
+  vLayout.add(buttonRow)
+  vLayout.add(l1)
+  vLayout.add(l2)
+  vLayout.add(l3)
+  buttonRow.add(exportButton)
+
+  pointArea.text = default_points
+  sessionArea.text = default_sessions
+  txtOverArea.text = "default_text.txt".readFile.fixLineEndings
+
+  drawWin.add(drawing)
+  drawing.widthMode = WidthMode_Expand
+  drawing.heightMode = HeightMode_Expand
+
+  win.onKeyDown = proc(event: KeyboardEvent)=
+    if Key_Return.isDown() and Key_ControlL.isDown():
+      try:
+        state = getState().parseState()
+        drawing.forceRedraw()
+      except ParserError as e:
+        win.alert("Fehler: " & e.msg)
+      event.handled = true
+
+  win.onCloseClick = proc(event: CloseClickEvent) =
+    win.dispose()
+    drawWin.dispose()
+
+  exportButton.onClick = proc(ev: ClickEvent)=
+    let filePath = getFilePathViaDialog("Exportieren nach:", "png")
+    if filePath != "":
+      storeAsImage(state, filePath, northArrow)
+      let 
+        fileSplit = splitFile(filePath)
+        #jsonPath = fileSplit.dir / fileSplit.name & ".json"
+        htmlPath = fileSplit.dir / fileSplit.name & ".html"
+      #jsonPath.writeFile $(%*state)
+      echo getCurrentDir()
+      htmlPath.writeFile(makeHtml(state, load_antenna_image_as_base64()))
+
+  drawing.onDraw = proc(event: DrawEvent)=
+    renderToCanvas(state, event.control.canvas) 
+
+  state = getState().parseState()
+  #writeFile(getHomeDir() & "/tmp/foo.html",
+            #makeHtml(state, load_antenna_image_as_base64()))
+
+  #storeAsImage(state, getHomeDir() / "tmp/img.png", northArrow)
+
+  #TODO: clean up pngs.
+  win.show()
+  drawWin.show()
+  app.run()
+
+
+main()

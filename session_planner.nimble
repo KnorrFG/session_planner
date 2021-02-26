@@ -11,6 +11,6 @@ bin           = @["session_planner"]
 # Dependencies
 
 requires "nim >= 1.4.0",
-  "nigui",
+  "nigui == 0.2.4",
   "zero_functional",
-  "karax"
+  "cairo"

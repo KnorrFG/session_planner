@@ -4,12 +4,16 @@ import core
 
 type ParserError* = object of CatchableError
 
+let
+    newLine = {'\10', '\13'}
+    identEnd = {' ', '\t', '{'}
 
 proc getLineAt(s: string, i: int): string=
   let sub = s[0..i].reversed.join
+
   var
-    start = sub.find('\n', 1)
-    mend = s.find('\n', i)
+    start = sub.find(newLine, 1)
+    mend = s.find(newLine, i)
 
   if mend == -1:
     mend = s.high + 1
@@ -28,7 +32,8 @@ proc parseUntilMatching(s: string, buf: var string, match: char, inverse: char,
 
   while true:
     let no = skipUntil(s, {match, inverse}, i + offset )
-    if no == 0:
+    if no == 0 or no + i + offset == s.len:
+      # This Case means end of string
       return 0
     else:
       offset += no
@@ -60,10 +65,10 @@ proc parseTopLvl(s: string, i=0, res: seq[string] = @[]): seq[string]=
 
   i += skipWhitespace(s, i)
   if s[i] == '#':
-    i += skipUntil(s, '\n', i)
+    i += skipUntil(s, newLine, i)
     return parseTopLvl(s, i + 1, res)
   else:
-    i += parseIdent(s, tmp, i).orRaise("Habe einen Namen erwartet hier:\n" &
+    i += parseUntil(s, tmp, identEnd, i).orRaise("Habe einen Namen erwartet hier:\n" &
                                         s.getLineAt(i))
     res.add(tmp.toLower)
     i += skipWhitespace(s, i)
@@ -87,7 +92,7 @@ proc parseFloatOrRaise(s: string): float=
 
 
 proc parsePoints*(s: string): seq[Point]=
-  let lines = s.splitLines().mapIt(it.strip.replace(",", ".")).
+  let lines = splitLines(s).mapIt(it.strip.replace(",", ".")).
                 filterIt(not it.startswith("#") and it.len > 0)
 
   for line in lines:
@@ -110,7 +115,7 @@ proc parseSessions*(s: string): Table[string, seq[string]]=
   let tokens = parseTopLvl(s.strip)
   for i in countup(0, tokens.high, 2):
     let points = tokens[i + 1]
-    result[tokens[i]] = points.splitLines.
+    result[tokens[i]] = splitLines(tokens[i + 1]).
                 filterIt(not it.startswith("#") and it.len > 0).
                 join(" ").split().filterIt(it.len > 0)
 
@@ -148,7 +153,7 @@ proc parseTextField*(t: string): tuple[imageText, htmlText: string] =
     imgLines: seq[string] = @[]
     htmlLines: seq[string] = @[]
 
-  for line in t.splitLines():
+  for line in splitLines(t):
     let l = line.strip()
     if l.startsWith("#"):
       continue
@@ -160,7 +165,8 @@ proc parseTextField*(t: string): tuple[imageText, htmlText: string] =
       htmlLines.add(line)
       imgLines.add(line)
 
-  (imageText: imgLines.join("\n"), htmlText: htmlLines.join("\n"))
+  (imageText: imgLines.join("\p").replace("\t", "    "),
+   htmlText: htmlLines.join("\p"))
 
   
 
