@@ -1,4 +1,4 @@
-import parseutils, strutils, strformat, algorithm, sequtils, tables, sets
+import parseutils, strutils, strformat, algorithm, sequtils, tables, sets, sugar
 import core
 
 
@@ -68,17 +68,19 @@ proc parseTopLvl(s: string, i=0, res: seq[string] = @[]): seq[string]=
     i += skipUntil(s, newLine, i)
     return parseTopLvl(s, i + 1, res)
   else:
-    i += parseUntil(s, tmp, identEnd, i).orRaise("Habe einen Namen erwartet hier:\n" &
+    i += parseUntil(s, tmp, identEnd, i).orRaise("Die Sessionnummer fehlt:\n" &
                                         s.getLineAt(i))
     res.add(tmp.toLower)
     i += skipWhitespace(s, i)
-    if s[i] != '{':
+    if i == s.len or s[i] != '{':
       raise newException(ParserError,
-        &"Ich habe eine {{ erwartet nach {tmp}\n" & "Zeile: " & s.getLineAt(i))
+        &"Ich habe eine {{ erwartet nach {tmp}\n" & "Zeile: " &
+        s.getLineAt(if i < s.len: i else: i - 1))
     else:
       i += 1
       i += parseUntilMatching(s, tmp, '}', '{', i).orRaise(
-        "Habe keine zugehoerige } gefunden\n" & s.getLineAt(i))
+        "Habe keine zugehoerige } gefunden\n" &
+        s.getLineAt(if i < s.len: i else: i - 1))
       res.add(tmp)
       return parseTopLvl(s, i + 1, res)
 
@@ -111,17 +113,30 @@ proc parsePoints*(s: string): seq[Point]=
                 y: elems[2].parseFloatOrRaise, color: color))
 
 
-proc parseSessions*(s: string): Table[string, seq[string]]=
-  let tokens = parseTopLvl(s.strip)
+proc parseSessions*(s: string): Sessions=
+  let 
+    tokens = parseTopLvl(s.strip)
+    sessions = collect newSeq:
+      for i in countup(0, tokens.high, 2): tokens[i]
+
+  for name, count in sessions.getMultipleOccurences:
+    raise newException(ParserError,
+      fmt"Session {name} kommt {count} mal vor")
+  
   for i in countup(0, tokens.high, 2):
-    let points = tokens[i + 1]
     result[tokens[i]] = splitLines(tokens[i + 1]).
                 filterIt(not it.startswith("#") and it.len > 0).
                 join(" ").split().filterIt(it.len > 0)
 
+  for name, points in result:
+    for p, c in getMultipleOccurences(points):
+      if c > 1:
+        raise newException(ParserError,
+          fmt"Punkt {p} kommt {c} mal in Session {name} vor")
 
-proc `or`[T](x: T, alt: T): T = x
-proc `or`[T](x: typeof(nil), alt: T): T = alt
+
+#proc `or`[T](x: T, alt: T): T = x
+#proc `or`[T](x: typeof(nil), alt: T): T = alt
 
 
 proc assert_graph_valid*(g: Graph)=
@@ -130,7 +145,7 @@ proc assert_graph_valid*(g: Graph)=
     for p in points:
       if p notin registeredPoints:
         raise newException(ParserError,
-          &"Punkt {p} in Session {ses} ist nicht unter Points definiert")
+          &"Punkt {p} in Session {ses} ist nicht definiert")
           
 
 proc parseGraph*(s: string): Graph=

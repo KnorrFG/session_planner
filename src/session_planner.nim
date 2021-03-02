@@ -1,14 +1,15 @@
-import nigui, zero_functional, cairo
+import nigui, zero_functional, cairo, nigui / msgbox
 import sequtils, tables, sets, hashes, sugar, strutils, times, os, std/json,
-  base64
+  base64, strformat
 import core, parser, geometry, gui, htmlGen, render
 
 
-type GuiState = object
-  pointAreaText, sessionAreaText, miscText: string
+type 
+  GuiState = object
+    pointAreaText, sessionAreaText, miscText: string
+  RuntimeInfo = object
+    currentSavePath: string 
 
-
-let transferImagePath = getTransferImagePath()
 
 converter toNiGuiColor(c: core.Color): nigui.Color =
   rgb(byte(c.r), byte(c.g), byte(c.b))
@@ -24,7 +25,7 @@ proc load_antenna_image_as_base64(): string =
   encode buffer
 
 
-proc getFilePathViaDialog(title: string, defaultExtension: string): string=
+proc getFilePathViaSaveDialog(title: string, defaultExtension: string): string=
   let cwd = getCurrentDir()
   var dialog = newSaveFileDialog()
   dialog.title = title
@@ -32,6 +33,25 @@ proc getFilePathViaDialog(title: string, defaultExtension: string): string=
   dialog.run()
   setCurrentDir cwd
   return dialog.file
+
+
+proc getFilePathViaLoadDialog(title: string): seq[string]=
+  let cwd = getCurrentDir()
+  var dialog = newOpenFileDialog()
+  dialog.title = title
+  dialog.directory = getHomeDir()
+  dialog.run()
+  setCurrentDir cwd
+  return dialog.files
+
+
+proc getDirectoryViaDialog(title: string): string=
+  let cwd = getCurrentDir()
+  var dialog = newSelectDirectoryDialog()
+  dialog.title = title
+  dialog.run()
+  setCurrentDir cwd
+  return dialog.selectedDirectory
 
 
 func nLines[T](ses: T): int =
@@ -61,7 +81,7 @@ proc storeAsImage(state: State, savePath: string, northArrow: render.Surface)=
 
   let img = renderGraph(points, state.graph.sessions,
                         state.txtOverImg, 1240, 1754)
-  img.addNorthArrow(angle, northArrow)
+  img.addNorthArrow(-angle, northArrow)
   img.writeToPng savePath
 
 
@@ -73,49 +93,83 @@ proc parseState(gs: GuiState): State=
   let
     nLines = g.sessions.values --> map(nLines(it)).fold(0, a + it)
     nPoints = g.points.len
-    txt_sub = gs.miscText % ["nLinien", $nLines, "nPunkte", $nPoints,
-                              "heute", now().format("dd'.'MM'.'yyyy")]
+    txt_sub = (gs.miscText
+      .replace("$nLinien", $nLines)
+      .replace("$nPunkte", $nPoints)
+      .replace("$heute", now().format("dd'.'MM'.'yyyy")))
     txt = parseTextField(txt_sub)
   newState(g, txt.imageText, txt.htmlText)
 
 
 proc main() =
   let northArrow = newSurface("north.png")
-  var state: State
+  var 
+    state: State
+    rtInfo: RuntimeInfo
   app.init()
 
   var 
-    win= newWindow("Session Planer")
+    win = newWindow("Session Planer")
     vLayout = newLayoutContainer(Layout_Vertical)
     buttonRow = newLayoutContainer(Layout_Horizontal)
     (l1, pointArea) = createNamedTextArea("Punkte:")
     (l2, sessionArea) = createNamedTextArea("Sessions:")
     (l3, txtOverArea) = createNamedTextArea("Text:")
     exportButton = newButton("\u2611 Export")
+    saveAsButton = newButton("Speichern unter")
+    saveButton = newButton("Speichern")
+    loadButton = newButton("Laden")
+    showGraphButton = newButton("Entwurf anzeigen")
     drawWin = newWindow("Session Planer - Graph")
     drawing = newControl()
 
-  proc getState(): GuiState = 
-    GuiState(pointAreaText: pointArea.text, 
-             sessionAreaText: sessionArea.text, 
+  proc getState(): GuiState =
+    GuiState(pointAreaText: pointArea.text,
+             sessionAreaText: sessionArea.text,
              miscText: txtOverArea.text)
 
+  proc applyGuiState(st: GuiState) =
+    pointArea.text = st.pointAreaText
+    sessionArea.text = st.sessionAreaText
+    txtOverArea.text = st.miscText
+    drawing.forceRedraw()
+
+  proc save(path: string) = path.writeFile($(%*getState()))
+
+  proc saveAs() =
+    let savePath = getFilePathViaSaveDialog("Speichern unter", ".p")
+    if savePath != "":
+      rtInfo.currentSavePath = savePath
+      save(savePath)
+
   win.add(vLayout)
+  win.width = 600
+  win.height = 800
   vLayout.add(buttonRow)
   vLayout.add(l1)
   vLayout.add(l2)
   vLayout.add(l3)
   buttonRow.add(exportButton)
+  buttonRow.add(saveAsButton)
+  buttonRow.add(saveButton)
+  buttonRow.add(loadButton)
+  buttonRow.add(showGraphButton)
 
   pointArea.text = default_points
   sessionArea.text = default_sessions
   txtOverArea.text = "default_text.txt".readFile.fixLineEndings
 
   drawWin.add(drawing)
+  drawWin.iconPath = "icon.ico"
   drawing.widthMode = WidthMode_Expand
   drawing.heightMode = HeightMode_Expand
 
-  win.onKeyDown = proc(event: KeyboardEvent)=
+  win.iconPath = "icon.ico"
+
+  drawWin.onCloseClick = proc (ev: CloseClickEvent) = drawWin.hide()
+  showGraphButton.onClick = proc (ev: ClickEvent) = drawWin.show()
+
+  win.onKeyDown = proc(event: KeyboardEvent) =
     if Key_Return.isDown() and Key_ControlL.isDown():
       try:
         state = getState().parseState()
@@ -129,18 +183,32 @@ proc main() =
     drawWin.dispose()
 
   exportButton.onClick = proc(ev: ClickEvent)=
-    let filePath = getFilePathViaDialog("Exportieren nach:", "png")
-    if filePath != "":
-      storeAsImage(state, filePath, northArrow)
-      let 
-        fileSplit = splitFile(filePath)
-        #jsonPath = fileSplit.dir / fileSplit.name & ".json"
-        htmlPath = fileSplit.dir / fileSplit.name & ".html"
-      #jsonPath.writeFile $(%*state)
-      echo getCurrentDir()
-      htmlPath.writeFile(makeHtml(state, load_antenna_image_as_base64()))
+    let dir = getDirectoryViaDialog("Exportieren nach:")
+    if dir != "":
+      storeAsImage(state, dir / "netzentwurf.png", northArrow)
+      let nAntennas = state.graph.sessions.values --> map(len it).max()
+      for i in 0 ..< nAntennas:
+        let filepath = dir / fmt"GPS{i + 1}.html"
+        filepath.writeFile(
+          makeHtml(state, load_antenna_image_as_base64(), i))
 
-  drawing.onDraw = proc(event: DrawEvent)=
+  saveAsButton.onClick = proc(ev: ClickEvent) = saveAs()
+  saveButton.onClick = proc(ev: ClickEvent) =
+    if rtInfo.currentSavePath != "":
+      save(rtInfo.currentSavePath)
+    else:
+      saveAs()
+
+  loadButton.onClick = proc(ev: ClickEvent) =
+    let file = getFilePathViaLoadDialog("Laden")
+    if file.len == 1:
+      let content = file[0].readFile
+      let guiState = content.parseJson.to(GuiState)
+      applyGuiState guiState
+      rtInfo.currentSavePath = file[0]
+      state = guiState.parseState
+
+  drawing.onDraw = proc(event: DrawEvent) =
     renderToCanvas(state, event.control.canvas) 
 
   state = getState().parseState()
@@ -149,7 +217,6 @@ proc main() =
 
   #storeAsImage(state, getHomeDir() / "tmp/img.png", northArrow)
 
-  #TODO: clean up pngs.
   win.show()
   drawWin.show()
   app.run()

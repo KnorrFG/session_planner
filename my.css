@@ -33,6 +33,10 @@ div.txtOver{
 	page-break-inside: avoid;
 }
 
+.pbBefore {
+	page-break-before: always;
+}
+
 .pointRec > .ident {
 	display: flex;
 	width: 100%;
@@ -67,11 +71,18 @@ div.txtOver{
 	width: 95%;
 }
 
-table input {
+.pointRec table input {
 	min-width: 10px;
 	max-width: 100%;
 	width: 100%;
+	text-align: center;
 }
+
+.sessionTable,.sessionTable th, .sessionTable td  {
+	border: 1px solid black;
+	text-align: center;
+}
+
 
 .r {
 	flex-grow: 2;

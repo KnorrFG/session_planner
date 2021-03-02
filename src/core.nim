@@ -1,5 +1,6 @@
 import tables, sets, strutils, sequtils, options, sugar, macros, json, times,
   os
+import zero_functional
 
 type
   Color* = object
@@ -10,7 +11,7 @@ type
     color*: Color
   Point* = AbstractPoint[float64]
   NormPoint* = AbstractPoint[int]
-  Sessions = Table[string, seq[string]]
+  Sessions* = OrderedTable[string, seq[string]]
   Points = seq[Point]
   Graph* = object
     points*: Points
@@ -81,11 +82,6 @@ proc newState*(graph: Graph, txtOverImg, txtOverHtml: string): State=
 proc `$`*(x: State): string = repr(x)
 
 
-
-type Popable*[T] = concept s
-    s.pop() is T
-
-
 func twoElemSubSets*[T](s: seq[T]): seq[(T, T)]=
   if s.len < 2:
     return
@@ -97,7 +93,8 @@ func twoElemSubSets*[T](s: seq[T]): seq[(T, T)]=
       result.add((cur, it))
   result.add((s.pop, s.pop))
 
-proc getTransferImagePath*(): string = getConfigDir() / $now() & ".png"
+proc getMultipleOccurences*[T](xs: openArray[T]): Table[T, int] =
+  toSeq(xs.toCountTable.pairs).filterIt(it[1] > 1).toTable
 
 macro myAssert*(arg: untyped): untyped =
   # all node kind identifiers are prefixed with "nnk"
@@ -107,7 +104,7 @@ macro myAssert*(arg: untyped): untyped =
   let op  = newLit(" " & arg[0].repr & " ")
   let lhs = arg[1]
   let rhs = arg[2]
-  
+ 
   result = quote do:
     if not `arg`:
       raise newException(AssertionDefect,$`lhs` & `op` & $`rhs`)

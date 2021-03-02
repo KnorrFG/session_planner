@@ -40,7 +40,7 @@ proc addNorthArrow*(s: Surface, angle: float, image: Surface) =
   ctx.paint()
   ctx.destroy()
 
-proc renderGraph*(points: seq[Point], sessions: Table[string, seq[string]],
+proc renderGraph*(points: seq[Point], sessions: Sessions,
                   textover: string, w, h: int): Surface=
   new result
   result.data = imageSurfaceCreate(FORMAT_ARGB32, w.int32, h.int32)
@@ -77,11 +77,12 @@ proc renderGraph*(points: seq[Point], sessions: Table[string, seq[string]],
     ctx.showText(p.name)
     ctx.fill()
 
-    ctx.set(txtOverColor)
-    for i, line in pairs textover.splitLines():
-      ctx.moveTo(0.05 * w, 0.05 * h + extent.height * 1.5 * i)
-      ctx.showText(line)
-      ctx.stroke()
+  ctx.set(txtOverColor)
+  for i, line in pairs textover.splitLines():
+    let extent = ctx.textExtents(line)
+    ctx.moveTo(0.05 * w, 0.05 * h + extent.height * 1.5 * i)
+    ctx.showText(line)
+    ctx.stroke()
     
   ctx.destroy()
 

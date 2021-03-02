@@ -21,7 +21,7 @@
     <tr>
       <td><label for="v0"><b>v<sub>0</sub>:</b></td>
       <td>Vertikale Messung; Höhenoffset</label></td>
-      <td><input type="number" step=0.0001 id="v0"></td>
+      <td><input type="number" step=0.001 id="v0" value="0,36"></td>
     </tr>
     <tr>
       <td><b>s:</b></td>
@@ -30,21 +30,21 @@
     <tr>
       <td><label for="s0"><b>s<sub>0</sub>:</b></td>
       <td>Schräge Messung; Höhenoffset</label></td>
-      <td><input type="number" step=0.0001 id="s0"></td>
+      <td><input type="number" step=0.001 id="s0" value="0,035"></td>
     </tr>
     <tr>
       <td><label for="sH"><b>s<sub>H</sub>:</b></td>
       <td>Schräge Messung; horizontaler Offset</label></td>
-      <td><input type="number" step=0.0001 id="sH"></td>
+      <td><input type="number" step=0.001 id="sH" value="0,19"></td>
     </tr>
   </table>
 </div>
 #end proc
 #
-#proc makeSessionTable(sessions: Table[string, seq[string]]): string =
+#proc makeSessionTable(sessions: Sessions): string =
 #  let nAntennas = sessions.values --> map(len it).max()
 <div>
-  <table>
+  <table class="sessionTable">
   <tr>
     <th>Session</th>
     #for i in 1..nAntennas:
@@ -54,8 +54,12 @@
   # for name, points in sessions:
     <tr>
       <td>$name</td>
-      # for p in points:
-        <td>$p</td>
+      # for i in 0 ..< nAntennas:
+        #if i < points.len:
+          <td>${points[i]}</td>
+        #else:
+          <td></td>
+        #end if
       # end for
     </tr>
     # end for
@@ -64,10 +68,11 @@
 #end proc
 #
 #
-#proc makePointRecord(point, session: string): string =
+#proc makePointRecord(point, session: string, even: bool): string =
   #func myId(s: string): string = "_" & point & session & s
   #end func
-<div class="pointRec" point=$point session=$session>
+<div class="pointRec ${if even: "pbBefore" else: ""}" 
+    point=$point session=$session>
   <div class="ident">
     <div class="identCell">
        <b>Punkt: </b>
@@ -90,15 +95,15 @@
         </tr>
         <tr>
           <td>Start</td>
-          <td><input id="${myId("v0")}" step=0.0001 type="number"></td>
-          <td><input id="${myId("s10")}" step=0.0001 type="number"></td>
-          <td><input id="${myId("s20")}" step=0.0001 type="number"></td>
+          <td><input id="${myId("v0")}" step=0.001 type="number"></td>
+          <td><input id="${myId("s10")}" step=0.001 type="number"></td>
+          <td><input id="${myId("s20")}" step=0.001 type="number"></td>
         </tr>
         <tr>
           <td>Ende</td>
-          <td><input id="${myId("v1")}" step=0.0001 type="number"></td>
-          <td><input id="${myId("s11")}" step=0.0001 type="number"></td>
-          <td><input id="${myId("s21")}" step=0.0001 type="number"></td>
+          <td><input id="${myId("v1")}" step=0.001 type="number"></td>
+          <td><input id="${myId("s11")}" step=0.001 type="number"></td>
+          <td><input id="${myId("s21")}" step=0.001 type="number"></td>
         </tr>
         <tr>
           <td>${"Diff \u2264 2mm"}</td>
@@ -213,10 +218,18 @@
       <input id="anntennablock6" type="">
     </td>
   </tr>
+  <tr>
+    <td>
+      <label for="anntennablock7">Beobachter</label>
+    </td>
+    <td>
+      <input id="anntennablock7" type="">
+    </td>
+  </tr>
 </table>
 #end proc
 #
-#proc makeHtml*(state: State, image: string):string =
+#proc makeHtml*(state: State, image: string, antennaIdx: int):string =
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -237,15 +250,14 @@ $state.txtOverHtml
 ${makeSettingsSection(image)}
 <h2>Session Planung</h2>
 ${makeSessionTable(state.graph.sessions)}
-#let nAntennas = state.graph.sessions.values --> map(len it).max()
-#for i in 0..<nAntennas:
-  <h3>GPS ${i + 1}</h3>
-  ${makeAntennaInfoBlock()}
-  #for session, points in state.graph.sessions:
-    #if points.len > i:
-      ${makePointRecord(points[i], session)}  
-    #end if
-  #end for
+<h3>GPS ${antennaIdx + 1}</h3>
+${makeAntennaInfoBlock()}
+#var n = 0
+#for session, points in state.graph.sessions:
+  #if points.len > antennaIdx:
+    ${makePointRecord(points[antennaIdx], session, n mod 2 == 0)}  
+    #inc n
+  #end if
 #end for
 </body>
 </html>

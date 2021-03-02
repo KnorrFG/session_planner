@@ -1,4 +1,4 @@
-import tables, sets, strutils, sequtils, options, sugar, math, macros
+import tables, sets, strutils, sequtils, options, sugar, math, macros, strformat
 import core
 
 
@@ -83,12 +83,12 @@ func findNextPointInConvexHull[T](p: (T, T), vecA: (T, T),
   return points[i]
 
 
-func findConvexHull[T: SomeNumber](points: seq[(T, T)]): HashSet[(T, T)]=
+func findConvexHull[T: SomeNumber](points: seq[(T, T)]): seq[(T, T)]=
   case len points:
     of 0..2: raise newException(ValueError,
       "Cannot compute the convex hull of less than 3 points.")
     of 3:
-      return toHashSet points
+      return points
     else:
       discard
 
@@ -96,14 +96,14 @@ func findConvexHull[T: SomeNumber](points: seq[(T, T)]): HashSet[(T, T)]=
     lastP = findConvexHullStartPoint points
     vec = (0.0, 1.0)
     nextP: (T, T)
-  result.incl lastP
+  result.add lastP
 
   while true:
     nextP = findNextPointInConvexHull(lastP, vec, points)
     if nextP in result:
       break
 
-    result.incl(nextP)
+    result.add(nextP)
     vec = nextP - lastP
     lastP = nextP
 
@@ -120,7 +120,8 @@ func rotateToDinA4*[T](ps: seq[(T, T)]): (seq[(T, T)], float64)=
     smallestArea = float64.high
     smallestW, smallestH: float64
 
-  for (a, b) in slidingWindow2 toSeq findConvexHull ps:
+  let hull = findConvexHull ps
+  for (a, b) in slidingWindow2 hull:
     let 
       rotation = angle((1.0, 0.0), b - a) mod (0.5 * PI)
       rotatedPoints = ps.mapIt(rotate(it, rotation))
@@ -131,10 +132,11 @@ func rotateToDinA4*[T](ps: seq[(T, T)]): (seq[(T, T)], float64)=
       smallestArea = area
       smallestW = w
       smallestH = h
-      result = (rotatedPoints, rotation)
 
-    if smallestW > smallestH:
-      result = (result[0].mapIt(rotate(it, 0.5*PI)), result[1] + 0.5*PI)
+      if smallestW > smallestH:
+        result = (rotatedPoints.mapIt(rotate(it, 0.5*PI)), rotation + 0.5*PI)
+      else:
+        result = (rotatedPoints, rotation)
 
 
 func normalizePoints*(ps: seq[Point], w, h: float64): seq[NormPoint]=
