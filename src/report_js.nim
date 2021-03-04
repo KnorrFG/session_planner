@@ -7,7 +7,10 @@ proc floatHtml(id: cstring): float = parseFloat($(@!id.innerHtml))
 
 proc setDiffLe2mm(idA, idB, idOut: cstring) =
   try:
-    @!idOut.innerHtml = if abs(idA.floatVal - idB.floatVal) <= 0.002:
+    # for if <= 0.002 is used it will actually often say false when the diff id
+    # exactly 0.002. I suspect floating point shenanigans, so the threshold is
+    # 0.0021
+    @!idOut.innerHtml = if abs(idA.floatVal - idB.floatVal) <= 0.0021:
       "&#9989;"
     else:
       "&#10060;"

@@ -98,7 +98,7 @@ proc parsePoints*(s: string): seq[Point]=
                 filterIt(not it.startswith("#") and it.len > 0)
 
   for line in lines:
-    let elems = line.split()
+    let elems = line.split().filterIt(it.len > 0)
     if elems.len notin {3, 4}:
       raise newException(ParserError,
         "Zeile muss 3 oder 4 elemente Enthalten, aber ist:\n" & line)
@@ -174,7 +174,7 @@ proc parseTextField*(t: string): tuple[imageText, htmlText: string] =
       continue
     elif l.startsWith ":h":
       htmlLines.add(l[2 ..< l.len].strip)
-    elif l.startsWith ":b":
+    elif l.startsWith ":e":
       imgLines.add(l[2 ..< l.len].strip)
     else:
       htmlLines.add(line)
