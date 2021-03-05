@@ -199,7 +199,7 @@
       <label for="anntennablock4">Koordinatensystem</label>
     </td>
     <td>
-      <input id="anntennablock4" type="">
+      <input id="anntennablock4" type="" value="WGS84">
     </td>
   </tr>
   <tr>
