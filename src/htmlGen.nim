@@ -30,12 +30,12 @@
     <tr>
       <td><label for="s0"><b>s<sub>0</sub>:</b></td>
       <td>Schräge Messung; Höhenoffset</label></td>
-      <td><input type="number" step=0.001 id="s0" value="0,035"></td>
+      <td><input type="number" step=0.001 id="s0" value="0,0345"></td>
     </tr>
     <tr>
       <td><label for="sH"><b>s<sub>H</sub>:</b></td>
       <td>Schräge Messung; horizontaler Offset</label></td>
-      <td><input type="number" step=0.001 id="sH" value="0,19"></td>
+      <td><input type="number" step=0.001 id="sH" value="0,1897"></td>
     </tr>
   </table>
 </div>
@@ -113,9 +113,18 @@
         </tr>
         <tr>
           <td>reduziert</td>
-          <td><div id="${myId("vr")}"></div></td>
-          <td><div id="${myId("s1r")}"></div></td>
-          <td><div id="${myId("s2r")}"></div></td>
+          <td>
+            <div id="${myId("vr")}"></div>
+            <div id="${myId("vrw")}"></div>
+          </td>
+          <td>
+            <div id="${myId("s1r")}"></div>
+            <div id="${myId("s1rw")}"></div>
+          </td>
+          <td>
+            <div id="${myId("s2r")}"></div>
+            <div id="${myId("s2rw")}"></div>
+          </td>
         </tr>
       </table>
     </div>
@@ -229,17 +238,18 @@
 </table>
 #end proc
 #
-#proc makeHtml*(state: State, image: string, antennaIdx: int):string =
+#proc makeHtml*(state: State, image: string, gpsIdx: int, js, css: string):
+# string =
 <!DOCTYPE html>
 <html lang="de">
 <head>
 	<meta charset="UTF-8">
 	<title>Beobachtungsprotokol</title>
   <style>
-    ${"my.css".readFile()}
+    $css
   </style>
   <script>
-    ${"my.js".readFile()}
+    $js
   </script>
 </head>
 <body onload="onLoad()">
@@ -250,12 +260,12 @@ $state.txtOverHtml
 ${makeSettingsSection(image)}
 <h2>Session Planung</h2>
 ${makeSessionTable(state.graph.sessions)}
-<h3>GPS ${antennaIdx + 1}</h3>
+<h3>GPS ${gpsIdx + 1}</h3>
 ${makeAntennaInfoBlock()}
 #var n = 0
 #for session, points in state.graph.sessions:
-  #if points.len > antennaIdx:
-    ${makePointRecord(points[antennaIdx], session, n mod 2 == 0)}  
+  #if points.len > gpsIdx:
+    ${makePointRecord(points[gpsIdx], session, n mod 2 == 0)}  
     #inc n
   #end if
 #end for

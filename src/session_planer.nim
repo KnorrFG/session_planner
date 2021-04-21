@@ -33,8 +33,8 @@ proc shouldSaveDialog(win: Window): ShouldSaveResponse =
 
 
 
-proc load_antenna_image_as_base64(): string =
-  let file = "antenna.jpg".open()
+proc load_antenna_image_as_base64(path: string): string =
+  let file = path.open()
   defer: file.close()
 
   let nBytes = file.getFileSize()
@@ -44,12 +44,12 @@ proc load_antenna_image_as_base64(): string =
 
 
 proc getFilePathViaSaveDialog(title: string, defaultExtension: string): string=
-  let cwd = getCurrentDir()
+  #let cwd = getCurrentDir()
   var dialog = newSaveFileDialog()
   dialog.title = title
   dialog.defaultExtension = defaultExtension
   dialog.run()
-  setCurrentDir cwd
+  #setCurrentDir cwd
   return dialog.file
 
 
@@ -121,7 +121,13 @@ proc parseState(gs: GuiState): State=
 
 
 proc main() =
-  let northArrow = newSurface("north.png")
+  let 
+    myDir = getAppDir() 
+    northArrow = newSurface(myDir / "north.png")
+    antenna = load_antenna_image_as_base64(myDir / "antenna.jpg")
+    default_text = readFile(myDir / "default_text.txt").fixLineEndings
+    js = readFile(myDir / "my.js")
+    css = readFile(myDir / "my.css")
   var 
     state: State
     rtInfo: RuntimeInfo
@@ -154,7 +160,9 @@ proc main() =
     rtInfo.tLastDraw = now()
     drawing.forceRedraw()
 
-  proc save(path: string) = path.writeFile($(%*getState()))
+  proc save(path: string) = 
+    path.writeFile($(%*getState()))
+    rtInfo.tLastSave = now()
 
   proc saveAs() =
     let savePath = getFilePathViaSaveDialog("Speichern unter", "sp")
@@ -167,6 +175,14 @@ proc main() =
       save(rtInfo.currentSavePath)
     else:
       saveAs()
+
+  proc load(path: string) =
+    let content = path.readFile
+    let guiState = content.parseJson.to(GuiState)
+    applyGuiState guiState
+    rtInfo.currentSavePath = path
+    rtInfo.tLastSave = now()
+    state = guiState.parseState
 
   proc updateGraph() =
     let guiState = getState()
@@ -194,14 +210,14 @@ proc main() =
 
   pointArea.text = default_points
   sessionArea.text = default_sessions
-  txtOverArea.text = "default_text.txt".readFile.fixLineEndings
+  txtOverArea.text = default_text
 
   drawWin.add(drawing)
-  drawWin.iconPath = "icon.ico"
+  drawWin.iconPath = myDir / "icon.ico"
   drawing.widthMode = WidthMode_Expand
   drawing.heightMode = HeightMode_Expand
 
-  win.iconPath = "icon.ico"
+  win.iconPath = myDir / "icon.ico"
 
   drawWin.onCloseClick = proc (ev: CloseClickEvent) = drawWin.hide()
   showGraphButton.onClick = proc (ev: ClickEvent) = drawWin.show()
@@ -225,8 +241,14 @@ proc main() =
     drawWin.dispose()
 
   exportButton.onClick = proc(ev: ClickEvent)=
-    let dir = getDirectoryViaDialog("Exportieren nach:",
-                                    rtInfo.currentExportPath)
+    let start = if rtInfo.currentExportPath != "":
+        rtInfo.currentExportPath
+      elif rtInfo.currentSavePath != "":
+        rtInfo.currentSavePath.splitPath.head
+      else:
+        getHomeDir()
+    let dir = getDirectoryViaDialog("Exportieren nach:", start)
+
     if dir != "":
       rtInfo.currentExportPath = dir
       storeAsImage(state, dir / "netzentwurf.png", northArrow)
@@ -234,7 +256,7 @@ proc main() =
       for i in 0 ..< nAntennas:
         let filepath = dir / fmt"GPS{i + 1}.html"
         filepath.writeFile(
-          makeHtml(state, load_antenna_image_as_base64(), i))
+          makeHtml(state, antenna, i, js, css))
 
   saveAsButton.onClick = proc(ev: ClickEvent) = saveAs()
   saveButton.onClick = proc(ev: ClickEvent) = saveOrSaveAs()
@@ -243,19 +265,18 @@ proc main() =
     let file = getFilePathViaLoadDialog("Laden",
                                         rtInfo.currentSavePath.parentDir)
     if file.len == 1:
-      let content = file[0].readFile
-      let guiState = content.parseJson.to(GuiState)
-      applyGuiState guiState
-      rtInfo.currentSavePath = file[0]
-      state = guiState.parseState
+      load(file[0])
 
   drawing.onDraw = proc(event: DrawEvent) =
     renderToCanvas(state, event.control.canvas) 
 
-  rtInfo.lastGuiState = getState()
-  rtInfo.tLastDraw = now()
-  rtInfo.tLastSave = now()
-  state = rtInfo.lastGuiState.parseState()
+  if paramCount() == 1:
+    load(paramStr(1))
+  else:
+    rtInfo.lastGuiState = getState()
+    rtInfo.tLastDraw = now()
+    rtInfo.tLastSave = now()
+    state = rtInfo.lastGuiState.parseState()
 
   win.show()
   drawWin.show()

@@ -23,6 +23,9 @@ proc calcReductionS(meanS, sh, s0: float): float {.exportc.} =
 
 
 proc onLoad() {.exportc.}=
+  window.addEventListener("beforeunload", proc(ev: Event) =
+    ev.preventDefault())
+
   for record in document.getElementsByClassName("pointRec"):
     let
       point = $record.getAttribute("point")
@@ -65,6 +68,17 @@ proc onLoad() {.exportc.}=
                 arp2 = arp - "v0".floatVal
               @!idArp.innerHtml = fmt"{arp:.3f}"
               @!idArp2.innerHtml = fmt"{arp2:.3f}"
+
+              for x in "v s1 s2".split():
+                let 
+                  id = "{idbase}{x}r".fmt
+                  idwarn = id & "w"
+
+                @!idwarn.innerHtml = if abs(id.floatHtml - arp) > 0.0021:
+                  "&#x2757;"
+                else:
+                  ""
+
             except ValueError:
               return
 

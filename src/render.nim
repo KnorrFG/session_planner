@@ -78,9 +78,11 @@ proc renderGraph*(points: seq[Point], sessions: Sessions,
     ctx.fill()
 
   ctx.set(txtOverColor)
+  var hOffset = 0.0
   for i, line in pairs textover.splitLines():
     let extent = ctx.textExtents(line)
-    ctx.moveTo(0.05 * w, 0.05 * h + extent.height * 1.5 * i)
+    ctx.moveTo(0.05 * w, 0.05 * h + hOffset)
+    hOffset += extent.height + 7
     ctx.showText(line)
     ctx.stroke()
     

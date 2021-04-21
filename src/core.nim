@@ -53,9 +53,9 @@ let
 
   default_sessions* = """
     # Ich bin ein Kommentar und werde ignoriert werden.
-    Lala {1 2}
-    Foo { 3 4 5 }
-    Bar { 1 2 3 4 }
+    1 {1 2}
+    2 { 3 4 5 }
+    3 { 1 2 3 4 }
   """.dedent.fixLineEndings
 
 
