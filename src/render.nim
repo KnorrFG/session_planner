@@ -41,18 +41,25 @@ proc addNorthArrow*(s: Surface, angle: float, image: Surface) =
   ctx.destroy()
 
 proc renderGraph*(points: seq[Point], sessions: Sessions,
-                  textover: string, w, h: int): Surface=
+                  textover: string, surfaceSize: GSize[int],
+                  viewPort: GRect[float]): Surface=
   new result
-  result.data = imageSurfaceCreate(FORMAT_ARGB32, w.int32, h.int32)
+  let virtualSize = initGSize[int](
+      int(surfaceSize.w / viewPort.w), int(surfaceSize.h / viewPort.h))
+  result.data = imageSurfaceCreate(
+    FORMAT_ARGB32, surfaceSize.w.int32, surfaceSize.h.int32)
 
   var ctx = result.data.create()
   ctx.selectFontFace("Arial", FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL)
   ctx.setFontSize(18.0)
   let radius = 4
 
-  let normPoints = normalizePoints(points, w, h) --> map((it.name, it)).toTable
+  let normPoints = normalizePoints(points, virtualSize.w, virtualSize.h,
+                                   virtualSize.w * viewPort.x,
+                                   virtualSize.h * viewPort.y) -->
+        map((it.name, it)).toTable
 
-  ctx.rectangle(0, 0, w, h)
+  ctx.rectangle(0, 0, surfaceSize.w, surfaceSize.h)
   ctx.setSourceRGB(1, 1, 1)
   ctx.fill()
 
@@ -81,7 +88,7 @@ proc renderGraph*(points: seq[Point], sessions: Sessions,
   var hOffset = 0.0
   for i, line in pairs textover.splitLines():
     let extent = ctx.textExtents(line)
-    ctx.moveTo(0.05 * w, 0.05 * h + hOffset)
+    ctx.moveTo(0.05 * surfaceSize.w, 0.05 * surfaceSize.h + hOffset)
     hOffset += extent.height + 7
     ctx.showText(line)
     ctx.stroke()

@@ -13,6 +13,7 @@ type
     tLastDraw: DateTime
     tLastSave: DateTime
     lastGuiState: GuiState
+    viewPort: GRect[float]
   ShouldSaveResponse = enum
     rYes=1, rNo, rCancel
 
@@ -80,9 +81,12 @@ func nLines[T](ses: T): int =
 
 proc renderToCanvas(state: State, canvas: Canvas,
                     bgColor=toNiGuiColor bgColor,
-                    txtOverColor=toNiGuiColor txtOverColor)=
+                    txtOverColor=toNiGuiColor txtOverColor,
+                    viewPort: GRect[float] = initGRect[float](0, 0, 1, 1))=
   let img = renderGraph(state.graph.points, state.graph.sessions,
-                        state.txtOverImg, canvas.width, canvas.height)
+                        state.txtOverImg,
+                        initGSize[int](canvas.width, canvas.height),
+                        viewPort)
   let img2 = newImage()
   img2.resize(img.width, img.height)
   let dataptr = img2.beginPixelDataAccess()
@@ -99,7 +103,8 @@ proc storeAsImage(state: State, savePath: string, northArrow: render.Surface)=
         p.set(x=c[0], y=c[1])
 
   let img = renderGraph(points, state.graph.sessions,
-                        state.txtOverImg, 1240, 1754)
+                        state.txtOverImg, initGSize[int](1240, 1754),
+                        initGRect[float](0, 0, 1, 1))
   img.addNorthArrow(-angle, northArrow)
   img.writeToPng savePath
 
@@ -131,6 +136,8 @@ proc main() =
   var 
     state: State
     rtInfo: RuntimeInfo
+
+  rtInfo.viewPort = initGRect[float](0, 0, 1, 1)
   app.init()
 
   var 
@@ -160,7 +167,7 @@ proc main() =
     rtInfo.tLastDraw = now()
     drawing.forceRedraw()
 
-  proc save(path: string) = 
+  proc save(path: string) =
     path.writeFile($(%*getState()))
     rtInfo.tLastSave = now()
 
@@ -184,14 +191,20 @@ proc main() =
     rtInfo.tLastSave = now()
     state = guiState.parseState
 
-  proc updateGraph() =
+  proc updateGraph(forced=false, updateDrawTimeStamp=true) =
+    # The draw timestamp is used to check whether there are unsafed changes,
+    # however, since I introduced zooming, the drawTimestamp could be newer
+    # than the save file. Therefore the two arguments are introduced, so the
+    # Graph is updated also when there are no changes in its content, and the
+    # timestamps isnt updated then
     let guiState = getState()
-    if guiState != rtInfo.lastGuiState:
+    if guiState != rtInfo.lastGuiState or forced:
       try:
         state = guiState.parseState()
         drawing.forceRedraw()
         rtInfo.lastGuiState = guiState
-        rtInfo.tLastDraw = now()
+        if updateDrawTimeStamp:
+          rtInfo.tLastDraw = now()
       except ParserError as e:
         win.alert("Fehler: " & e.msg)
 
@@ -213,6 +226,31 @@ proc main() =
   txtOverArea.text = default_text
 
   drawWin.add(drawing)
+  drawWin.onKeyDown = proc(event: KeyboardEvent) =
+    event.handled = true
+    if Key_Minus.isDown():
+      rtInfo.viewPort.w *= 1.1
+      rtInfo.viewPort.h *= 1.1
+      updateGraph(forced=true, updateDrawTimestamp=false)
+    elif Key_Plus.isDown():
+      rtInfo.viewPort.w *= 0.9
+      rtInfo.viewPort.h *= 0.9
+      updateGraph(forced=true, updateDrawTimestamp=false)
+    elif Key_Left.isDown():
+      rtInfo.viewPort.x += 0.1
+      updateGraph(forced=true, updateDrawTimestamp=false)
+    elif Key_Right.isDown():
+      rtInfo.viewPort.x -= 0.1
+      updateGraph(forced=true, updateDrawTimestamp=false)
+    elif Key_Up.isDown():
+      rtInfo.viewPort.y += 0.1
+      updateGraph(forced=true, updateDrawTimestamp=false)
+    elif Key_Down.isDown():
+      rtInfo.viewPort.y -= 0.1
+      updateGraph(forced=true, updateDrawTimestamp=false)
+    else:
+      event.handled = false
+
   drawWin.iconPath = myDir / "icon.ico"
   drawing.widthMode = WidthMode_Expand
   drawing.heightMode = HeightMode_Expand
@@ -268,7 +306,7 @@ proc main() =
       load(file[0])
 
   drawing.onDraw = proc(event: DrawEvent) =
-    renderToCanvas(state, event.control.canvas) 
+    renderToCanvas(state, event.control.canvas, viewPort=rtInfo.viewPort) 
 
   if paramCount() == 1:
     load(paramStr(1))

@@ -139,10 +139,11 @@ func rotateToDinA4*[T](ps: seq[(T, T)]): (seq[(T, T)], float64)=
         result = (rotatedPoints, rotation)
 
 
-func normalizePoints*(ps: seq[Point], w, h: float64): seq[NormPoint]=
+func normalizePoints*(ps: seq[Point], w, h, xOffset, yOffset: float64):
+    seq[NormPoint]=
   ## Point coordinates are quite large, and assume 0, 0 at the left bottom
-  ## This function recomputes them to be from 0 to (w, h) and the origin at the
-  ## top left
+  ## This function recomputes them to be from 0 to (w, h) moved by the x and y
+  ## offset and the origin at the top left
 
   if ps.len == 0:
     return
@@ -165,8 +166,8 @@ func normalizePoints*(ps: seq[Point], w, h: float64): seq[NormPoint]=
     y_scale = target_h / max_h
     scale = min(x_scale, y_scale)
   ps.mapIt(NormPoint(name: it.name,
-            x: int((it.x - min_x) * scale) + w_offset,
-            y: int((max_h - (it.y - min_y)) * scale) + h_offset,
+            x: int((it.x - min_x) * scale) + w_offset - xOffset.int,
+            y: int((max_h - (it.y - min_y)) * scale) + h_offset - yOffset.int,
             color: it.color))
 
 
@@ -174,6 +175,22 @@ const eps = 1e-7
 func `~=`(a: float, b: float): bool = abs(a - b) < eps
 func `~=`(a: (float, float), b: (float, float)): bool =
   a[0] ~= b[0] and a[1] ~= b[1]
+
+
+# there is a point type in core already, which will cause name collision, so
+# for this Point, I just lazily prepend a G, and for coherence, I do it for
+# Size and Rect too
+type 
+  GSize*[T] = object
+    w*, h*: T
+  GPoint*[T] = object
+    x*, y*: T
+  GRect*[T] = object
+    x*, y*, w*, h*: T
+
+func initGSize*[T](w, h: T): GSize[T] = GSize[T](w:w, h:h)
+func initGPoint*[T](x, y: T): GPoint[T] = GPoint[T](x:x, y:y)
+func initGRect*[T](x, y, w, h: T): GRect[T] = GRect[T](x:x, y:y, w:w, h:h)
 
 
 when isMainModule:
@@ -187,3 +204,4 @@ when isMainModule:
   myAssert angle((0, 1), (1, 0)) ~= 0.5 * PI
   myAssert rotate((1, 0), 0.5 * PI) ~= (0.0, 1.0) 
   myAssert rotate((1, 1), PI) ~= (-1.0, -1.0) 
+
