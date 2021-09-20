@@ -228,25 +228,25 @@ proc main() =
   drawWin.add(drawing)
   drawWin.onKeyDown = proc(event: KeyboardEvent) =
     event.handled = true
-    if Key_Minus.isDown():
+    if Key_Minus.isDown() or Key_NumpadSubtract.isDown():
       rtInfo.viewPort.w *= 1.1
       rtInfo.viewPort.h *= 1.1
       updateGraph(forced=true, updateDrawTimestamp=false)
-    elif Key_Plus.isDown():
+    elif Key_Plus.isDown() or Key_NumpadAdd.isDown():
       rtInfo.viewPort.w *= 0.9
       rtInfo.viewPort.h *= 0.9
       updateGraph(forced=true, updateDrawTimestamp=false)
     elif Key_Left.isDown():
-      rtInfo.viewPort.x += 0.1
-      updateGraph(forced=true, updateDrawTimestamp=false)
-    elif Key_Right.isDown():
       rtInfo.viewPort.x -= 0.1
       updateGraph(forced=true, updateDrawTimestamp=false)
+    elif Key_Right.isDown():
+      rtInfo.viewPort.x += 0.1
+      updateGraph(forced=true, updateDrawTimestamp=false)
     elif Key_Up.isDown():
-      rtInfo.viewPort.y += 0.1
+      rtInfo.viewPort.y -= 0.1
       updateGraph(forced=true, updateDrawTimestamp=false)
     elif Key_Down.isDown():
-      rtInfo.viewPort.y -= 0.1
+      rtInfo.viewPort.y += 0.1
       updateGraph(forced=true, updateDrawTimestamp=false)
     else:
       event.handled = false

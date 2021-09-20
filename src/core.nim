@@ -3,12 +3,20 @@ import tables, sets, strutils, sequtils, options, sugar, macros, json, times,
 import zero_functional
 
 type
+  HorizontalNamePosition* = enum
+    hnpLeft, hnpMiddle, hnpRight
+  VerticalNamePosition* = enum
+    vnpAbove, vnpMiddle, vnpBelow
+  NamePosition* = object
+    horizontal*: HorizontalNamePosition
+    vertical*: VerticalNamePosition
   Color* = object
     r*, g*, b*: int
   AbstractPoint*[T] = object
     name*: string
     x*, y*: T
     color*: Color
+    namePosition*: NamePosition
   Point* = AbstractPoint[float64]
   NormPoint* = AbstractPoint[int]
   Sessions* = OrderedTable[string, seq[string]]
@@ -20,6 +28,11 @@ type
     graph*: Graph
     txtOverImg*: string
     txtOverHtml*: string
+
+
+func initNamePosition*(h: HorizontalNamePosition, v: VerticalNamePosition):
+  NamePosition =
+    NamePosition(horizontal:h, vertical: v)
 
 
 func fixLineEndings*(s: string): string = s.splitLines().join("\p")
@@ -43,12 +56,12 @@ let
     "violet": Color(r:148, g:0, b:211),
   }
   default_points* = """
-      # Name Rechts Hoch [Farbe]
+      # Name Rechts Hoch [Farbe [Namens Position]]
       1 4593466 5637921
       2 4597209 5637946
-      3 4595591 5639878 gelb
-      4 4598250 5642330 gelb
-      5 4592250 5645330 violet
+      3 4595591 5639878 gelb L
+      4 4598250 5642330 gelb LU
+      5 4592250 5645330 violet RO
   """.dedent.fixLineEndings
 
   default_sessions* = """

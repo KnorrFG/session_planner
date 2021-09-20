@@ -168,7 +168,8 @@ func normalizePoints*(ps: seq[Point], w, h, xOffset, yOffset: float64):
   ps.mapIt(NormPoint(name: it.name,
             x: int((it.x - min_x) * scale) + w_offset - xOffset.int,
             y: int((max_h - (it.y - min_y)) * scale) + h_offset - yOffset.int,
-            color: it.color))
+            color: it.color,
+            namePosition: it.namePosition))
 
 
 const eps = 1e-7

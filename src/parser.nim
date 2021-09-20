@@ -93,24 +93,37 @@ proc parseFloatOrRaise(s: string): float=
                        &"Anstelle von '{s}' sollte eine Zahl stehen")
 
 
+func toNamePos(s: string): NamePosition =
+  let letters = s.toLower()
+  initNamePosition(
+     if 'l' in letters: hnpLeft elif 'r' in letters: hnpRight else: hnpMiddle,
+     if 'o' in letters: vnpAbove elif 'u' in letters: vnpBelow else: vnpMiddle
+  )
+
 proc parsePoints*(s: string): seq[Point]=
   let lines = splitLines(s).mapIt(it.strip.replace(",", ".")).
                 filterIt(not it.startswith("#") and it.len > 0)
 
   for line in lines:
     let elems = line.split().filterIt(it.len > 0)
-    if elems.len notin {3, 4}:
+    if elems.len notin {3, 4, 5}:
       raise newException(ParserError,
-        "Zeile muss 3 oder 4 elemente Enthalten, aber ist:\n" & line)
-    let color = if elems.len == 3:
-      colorsTable["schwarz"]
-    else:
-      if elems[3] in colorsTable:
-        colorsTable[elems[3]]
+        "Zeile muss 3, 4 oder 5 elemente Enthalten, aber ist:\n" & line)
+    let 
+      color = if elems.len == 3:
+        colorsTable["schwarz"]
       else:
-        raise newException(ParserError, &"Ungültige Farbe: {elems[3]}")
+        if elems[3] in colorsTable:
+          colorsTable[elems[3]]
+        else:
+          raise newException(ParserError, &"Ungültige Farbe: {elems[3]}")
+      namePos = if elems.len < 5:
+          initNamePosition(hnpMiddle, vnpBelow)
+        else:
+          elems[4].toNamePos()
     result.add(Point(name: elems[0], x: elems[1].parseFloatOrRaise,
-                y: elems[2].parseFloatOrRaise, color: color))
+                y: elems[2].parseFloatOrRaise, color: color,
+                namePosition: namePos))
 
 
 proc parseSessions*(s: string): Sessions=

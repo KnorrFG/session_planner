@@ -1,4 +1,4 @@
-import tables, math, strutils
+import tables, math, strutils, sugar
 import cairo, zero_functional
 
 import core, geometry
@@ -80,7 +80,17 @@ proc renderGraph*(points: seq[Point], sessions: Sessions,
     
     let extent = ctx.textExtents(p.name)
     ctx.set(colorsTable["schwarz"])
-    ctx.moveTo(p.x - extent.width / 2, p.y + extent.height * 1.2 + radius)
+    let 
+      xOffset = case p.namePosition.horizontal:
+          of hnpLeft: -extent.width - radius - 5
+          of hnpRight: radius + 5
+          of hnpMiddle: -(extent.width / 2)
+      yOffset = case p.namePosition.vertical:
+          of vnpAbove: -(extent.height * 0.2 + radius) 
+          of vnpBelow: extent.height * 1.2 + radius
+          of vnpMiddle: extent.height / 2
+
+    ctx.moveTo(p.x + xOffset, p.y + yOffset)
     ctx.showText(p.name)
     ctx.fill()
 
