@@ -227,6 +227,8 @@ proc main() =
 
   drawWin.add(drawing)
   drawWin.onKeyDown = proc(event: KeyboardEvent) =
+    let moveFactor = 0.2 * rtInfo.viewPort.w * rtInfo.viewPort.h * (
+      if Key_Shift.isDown(): 2 else: 1)
     event.handled = true
     if Key_Minus.isDown() or Key_NumpadSubtract.isDown():
       rtInfo.viewPort.w *= 1.1
@@ -237,16 +239,16 @@ proc main() =
       rtInfo.viewPort.h *= 0.9
       updateGraph(forced=true, updateDrawTimestamp=false)
     elif Key_Left.isDown():
-      rtInfo.viewPort.x -= 0.1
+      rtInfo.viewPort.x -= moveFactor
       updateGraph(forced=true, updateDrawTimestamp=false)
     elif Key_Right.isDown():
-      rtInfo.viewPort.x += 0.1
+      rtInfo.viewPort.x += moveFactor
       updateGraph(forced=true, updateDrawTimestamp=false)
     elif Key_Up.isDown():
-      rtInfo.viewPort.y -= 0.1
+      rtInfo.viewPort.y -= moveFactor
       updateGraph(forced=true, updateDrawTimestamp=false)
     elif Key_Down.isDown():
-      rtInfo.viewPort.y += 0.1
+      rtInfo.viewPort.y += moveFactor
       updateGraph(forced=true, updateDrawTimestamp=false)
     else:
       event.handled = false
